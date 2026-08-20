@@ -50,12 +50,21 @@ def inside_zone(center, w, h):
 
 
 def classify(torso_angle, knee_angle):
-    if torso_angle >= config.FALL_ANGLE_DEG:
+    # FALL
+    if torso_angle >= 55:
         return "falling"
-    if knee_angle < config.SITTING_KNEE_ANGLE_DEG and torso_angle < 55:
+
+    # SITTING
+    # Allow a much wider knee-angle range because
+    # webcam pose estimation can be noisy when seated.
+    if knee_angle < 165:
         return "sitting"
-    if torso_angle < config.STANDING_TORSO_ANGLE_DEG:
+
+    # STANDING
+    if torso_angle < 35 and knee_angle >= 165:
         return "standing"
+
+    # Otherwise
     return "walking"
 
 
