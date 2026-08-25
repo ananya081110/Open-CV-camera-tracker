@@ -5,142 +5,90 @@ from collections import deque
 class Track:
     def __init__(self, track_id, detection, now):
         self.id = track_id
+
         self.center = detection["center"]
         self.landmarks = detection["landmarks"]
         self.bbox = detection["bbox"]
 
-        # -----------------------------------------
+        # =====================================================
         # Activity state
-        # -----------------------------------------
+        # =====================================================
+
         self.state = "unknown"
         self.previous_state = "unknown"
         self.state_started = now
 
-        # Candidate state used for smoothing.
-        # A state must remain consistent for several
-        # frames before becoming the actual state.
-        self.candidate_state = "unknown"
-        self.candidate_started = now
+        # Candidate posture used for temporal smoothing
+        self.candidate_state = None
+        self.candidate_started = None
 
-        # Keep recent classifications for temporal smoothing.
-        self.state_history = deque(maxlen=12)
+        # Store recent posture classifications
+        self.posture_history = deque(maxlen=8)
 
-        # -----------------------------------------
+        # =====================================================
         # Tracking
-        # -----------------------------------------
+        # =====================================================
+
         self.last_seen = now
         self.missed = 0
 
-        # -----------------------------------------
-        # Fall detection
-        # -----------------------------------------
+        self.previous_center = self.center
+
+        # =====================================================
+        # Body movement
+        # =====================================================
+
         self.previous_hip_y = None
+        self.previous_hip_x = None
+
+        self.body_movement = 0.0
+
+        # =====================================================
+        # Fall detection
+        # =====================================================
+
         self.fall_candidate_started = None
         self.fall_alerted_at = None
 
-        # -----------------------------------------
+        # =====================================================
         # Activity alerts
-        # -----------------------------------------
+        # =====================================================
+
         self.sitting_alerted = False
         self.standing_alerted = False
 
-        # -----------------------------------------
+        # =====================================================
         # Zone tracking
-        # -----------------------------------------
+        # =====================================================
+
         self.zone_started = None
         self.zone_alerted = False
 
         self.was_in_zone = False
         self.zone_initialized = False
 
-        # -----------------------------------------
-        # Pose quality / visibility
-        # -----------------------------------------
-        self.lower_body_visible = False
-        self.upper_body_visible = False
-
-        # Number of consecutive frames where the
-        # lower body has been poorly detected.
-        self.limited_view_frames = 0
-
     def update(self, detection, now):
+
+        old_center = self.center
+
         self.center = detection["center"]
         self.landmarks = detection["landmarks"]
         self.bbox = detection["bbox"]
 
+        self.previous_center = old_center
+
         self.last_seen = now
         self.missed = 0
 
-    # -----------------------------------------
-    # Activity smoothing
-    # -----------------------------------------
-
-    def add_activity(self, state):
-        """
-        Add a newly detected state to the history.
-
-        This prevents one noisy frame from immediately
-        changing the person's activity.
-        """
-
-        self.state_history.append(state)
-
-    def stable_activity(self):
-        """
-        Return the most common recent activity.
-
-        Limited-view and unknown are handled separately
-        because they should not overwrite a reliable
-        activity too aggressively.
-        """
-
-        if not self.state_history:
-            return self.state
-
-        valid_states = [
-            s for s in self.state_history
-            if s not in ("unknown",)
-        ]
-
-        if not valid_states:
-            return self.state
-
-        counts = {}
-
-        for state in valid_states:
-            counts[state] = counts.get(state, 0) + 1
-
-        return max(
-            counts,
-            key=counts.get
+        # Calculate movement between frames
+        self.body_movement = math.hypot(
+            self.center[0] - old_center[0],
+            self.center[1] - old_center[1]
         )
-
-    # -----------------------------------------
-    # State transition
-    # -----------------------------------------
-
-    def update_state(self, new_state, now):
-        """
-        Update the actual state only when the new
-        state is sufficiently consistent.
-        """
-
-        if new_state == self.state:
-            self.candidate_state = new_state
-            self.candidate_started = now
-            return False
-
-        # If this is a completely new candidate,
-        # start timing it.
-        if new_state != self.candidate_state:
-            self.candidate_state = new_state
-            self.candidate_started = now
-            return False
-
-        return False
 
 
 class CentroidTracker:
+
     def __init__(
         self,
         max_distance=140,
@@ -150,11 +98,11 @@ class CentroidTracker:
         self.max_missed = max_missed
 
         self.next_id = 1
-
         self.tracks = {}
 
     @staticmethod
     def distance(a, b):
+
         return math.hypot(
             a[0] - b[0],
             a[1] - b[1]
@@ -165,13 +113,15 @@ class CentroidTracker:
         detections,
         now
     ):
-        # -----------------------------------------
+
+        # =====================================================
         # No existing tracks
-        # -----------------------------------------
+        # =====================================================
 
         if not self.tracks:
 
             for detection in detections:
+
                 self._add(
                     detection,
                     now
@@ -181,9 +131,9 @@ class CentroidTracker:
                 self.tracks.values()
             )
 
-        # -----------------------------------------
-        # Initially everything is unmatched
-        # -----------------------------------------
+        # =====================================================
+        # Matching
+        # =====================================================
 
         unmatched_tracks = set(
             self.tracks.keys()
@@ -194,10 +144,6 @@ class CentroidTracker:
         )
 
         pairs = []
-
-        # -----------------------------------------
-        # Calculate distances
-        # -----------------------------------------
 
         for tid, track in self.tracks.items():
 
@@ -218,9 +164,9 @@ class CentroidTracker:
                     )
                 )
 
-        # -----------------------------------------
-        # Match closest track ↔ detection
-        # -----------------------------------------
+        # =====================================================
+        # Match closest track to detection
+        # =====================================================
 
         for distance, tid, i in sorted(
             pairs
@@ -249,9 +195,9 @@ class CentroidTracker:
                 i
             )
 
-        # -----------------------------------------
-        # Add new detections
-        # -----------------------------------------
+        # =====================================================
+        # Add new people
+        # =====================================================
 
         for i in unmatched_detections:
 
@@ -260,9 +206,9 @@ class CentroidTracker:
                 now
             )
 
-        # -----------------------------------------
+        # =====================================================
         # Handle missed tracks
-        # -----------------------------------------
+        # =====================================================
 
         for tid in list(
             unmatched_tracks
@@ -287,10 +233,11 @@ class CentroidTracker:
         detection,
         now
     ):
+
         self.tracks[self.next_id] = Track(
             self.next_id,
             detection,
             now
         )
 
-        self.next_id += 1
+        self.next_id += 1     
