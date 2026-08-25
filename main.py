@@ -30,20 +30,24 @@ EVENT_LOG = LOG_DIR / "events.csv"
 
 
 # ============================================================
-# CONFIG HELPERS
+# CONFIG
 # ============================================================
 
 def cfg(name, default):
-    """
-    Read a configuration value if it exists.
-    Otherwise use the supplied default.
-    """
     return getattr(config, name, default)
 
 
 CAMERA_INDEX = cfg("CAMERA_INDEX", 0)
-FRAME_WIDTH = cfg("FRAME_WIDTH", 1280)
-FRAME_HEIGHT = cfg("FRAME_HEIGHT", 720)
+
+FRAME_WIDTH = cfg(
+    "FRAME_WIDTH",
+    1280
+)
+
+FRAME_HEIGHT = cfg(
+    "FRAME_HEIGHT",
+    720
+)
 
 MAX_TRACK_DISTANCE = cfg(
     "MAX_TRACK_DISTANCE_PX",
@@ -87,8 +91,33 @@ ZONE_DWELL_SECONDS = cfg(
 
 
 # ============================================================
-# LANDMARK INDICES
-# MediaPipe Pose landmark indices
+# POSTURE SETTINGS
+# ============================================================
+
+SITTING_KNEE_ANGLE = 155
+STRONG_SITTING_KNEE_ANGLE = 140
+
+STANDING_KNEE_ANGLE = 168
+
+UPRIGHT_TORSO_ANGLE = 32
+
+FALL_TORSO_ANGLE = 55
+
+WALKING_MOVEMENT_THRESHOLD = 8
+
+POSTURE_CONFIRM_FRAMES = 5
+
+POSTURE_CONFIRM_SECONDS = 0.7
+
+MIN_POSTURE_CONFIDENCE = 0.62
+
+UNCERTAIN_CONFIDENCE = 0.45
+
+POSTURE_HISTORY_SIZE = 9
+
+
+# ============================================================
+# MEDIAPIPE LANDMARK INDICES
 # ============================================================
 
 LEFT_SHOULDER = 11
@@ -108,7 +137,19 @@ RIGHT_ANKLE = 28
 # INITIALIZATION
 # ============================================================
 
+def ensure_model():
+
+    if not MODEL_PATH.exists():
+
+        raise FileNotFoundError(
+            "Pose model not found.\n"
+            "Run:\n"
+            "python download_model.py"
+        )
+
+
 def ensure_dirs():
+
     LOG_DIR.mkdir(
         parents=True,
         exist_ok=True
@@ -124,27 +165,43 @@ def ensure_dirs():
         exist_ok=True
     )
 
+    categories = [
+        "events",
+        "fall",
+        "falls",
+        "manual",
+        "zone",
+        "posture",
+        "limited_view",
+        "dwell"
+    ]
+
+    for category in categories:
+
+        (
+            CAPTURE_DIR / category
+        ).mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
     if not EVENT_LOG.exists():
+
         with EVENT_LOG.open(
             "w",
             newline=""
-        ) as f:
+        ) as file:
 
-            csv.writer(f).writerow([
+            writer = csv.writer(file)
+
+            writer.writerow([
                 "timestamp",
                 "track_id",
                 "event",
-                "details"
+                "activity",
+                "details",
+                "image_path"
             ])
-
-
-def ensure_model():
-    if not MODEL_PATH.exists():
-        raise FileNotFoundError(
-            "Pose model not found.\n"
-            "Run:\n"
-            "python download_model.py"
-        )
 
 
 # ============================================================
@@ -152,6 +209,7 @@ def ensure_model():
 # ============================================================
 
 def fmt(seconds):
+
     seconds = max(
         0,
         int(seconds)
@@ -163,7 +221,15 @@ def fmt(seconds):
     )
 
 
+def timestamp():
+
+    return datetime.now().isoformat(
+        timespec="seconds"
+    )
+
+
 def distance(a, b):
+
     return math.hypot(
         a[0] - b[0],
         a[1] - b[1]
@@ -171,16 +237,78 @@ def distance(a, b):
 
 
 def midpoint(a, b):
+
     return (
         (a[0] + b[0]) / 2,
         (a[1] + b[1]) / 2
     )
 
 
+def clamp(
+    value,
+    low=0.0,
+    high=1.0
+):
+
+    return max(
+        low,
+        min(
+            high,
+            value
+        )
+    )
+
+
+# ============================================================
+# LANDMARK VALIDATION
+# ============================================================
+
+def valid_point(point):
+
+    if point is None:
+        return False
+
+    try:
+
+        if len(point) < 2:
+            return False
+
+        x = float(point[0])
+        y = float(point[1])
+
+        return (
+            math.isfinite(x)
+            and
+            math.isfinite(y)
+            and
+            x >= 0
+            and
+            y >= 0
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        return False
+
+
+# ============================================================
+# ANGLE
+# ============================================================
+
 def angle(a, b, c):
-    """
-    Angle ABC.
-    """
+
+    if (
+        not valid_point(a)
+        or
+        not valid_point(b)
+        or
+        not valid_point(c)
+    ):
+
+        return None
 
     a = np.array(
         a,
@@ -200,19 +328,20 @@ def angle(a, b, c):
     ba = a - b
     bc = c - b
 
-    denom = (
+    denominator = (
         np.linalg.norm(ba)
         *
         np.linalg.norm(bc)
     )
 
-    if denom == 0:
-        return 180.0
+    if denominator == 0:
+
+        return None
 
     cosine = (
         np.dot(ba, bc)
         /
-        denom
+        denominator
     )
 
     cosine = np.clip(
@@ -227,227 +356,250 @@ def angle(a, b, c):
 
 
 # ============================================================
-# LANDMARK VALIDATION
+# BODY VISIBILITY
 # ============================================================
 
-def valid_point(point):
-    """
-    Check whether a landmark contains a usable x/y pair.
-    """
-
-    if point is None:
-        return False
-
-    if len(point) < 2:
-        return False
-
-    x = point[0]
-    y = point[1]
-
-    if not np.isfinite(x):
-        return False
-
-    if not np.isfinite(y):
-        return False
-
-    return True
-
-
-def point_near_frame_bottom(point, frame_height):
-    """
-    Detect landmarks that are effectively outside
-    the useful lower part of the camera frame.
-    """
-
-    if not valid_point(point):
-        return True
-
-    y = point[1]
-
-    return y >= frame_height * 0.94
-
-
-def lower_body_visibility(pts, frame_height):
+def lower_body_visibility(
+    points,
+    frame_height,
+    bbox
+):
     """
     Determine whether enough lower-body information
-    exists to classify sitting/standing reliably.
+    is actually visible.
 
-    This is deliberately conservative.
+    Important:
+    MediaPipe can sometimes estimate lower-body
+    landmarks even when the camera cannot see them.
 
-    If both knees/ankles are missing or effectively
-    outside the frame, we return LIMITED VIEW instead
-    of guessing STANDING.
+    Therefore we combine:
+
+        1. Landmark validity
+        2. Landmark position
+        3. Bounding-box bottom
+        4. Frame boundaries
+
+    If the camera mainly sees the upper body,
+    return False instead of guessing STANDING.
     """
 
-    knee_left = pts[LEFT_KNEE]
-    knee_right = pts[RIGHT_KNEE]
+    if len(points) < 33:
 
-    ankle_left = pts[LEFT_ANKLE]
-    ankle_right = pts[RIGHT_ANKLE]
+        return False
 
-    knees_valid = (
-        valid_point(knee_left)
-        and
-        valid_point(knee_right)
+    knees = [
+        points[LEFT_KNEE],
+        points[RIGHT_KNEE]
+    ]
+
+    ankles = [
+        points[LEFT_ANKLE],
+        points[RIGHT_ANKLE]
+    ]
+
+    valid_knees = [
+        p for p in knees
+        if valid_point(p)
+    ]
+
+    valid_ankles = [
+        p for p in ankles
+        if valid_point(p)
+    ]
+
+    # Need at least one knee.
+    if len(valid_knees) == 0:
+
+        return False
+
+    # --------------------------------------------------------
+    # Frame-bottom test
+    # --------------------------------------------------------
+
+    bottom_limit = (
+        frame_height * 0.94
     )
 
-    ankles_valid = (
-        valid_point(ankle_left)
-        and
-        valid_point(ankle_right)
-    )
-
-    knees_at_bottom = (
-        point_near_frame_bottom(
-            knee_left,
-            frame_height
-        )
-        and
-        point_near_frame_bottom(
-            knee_right,
-            frame_height
-        )
+    knees_at_bottom = all(
+        p[1] >= bottom_limit
+        for p in valid_knees
     )
 
     ankles_at_bottom = (
-        point_near_frame_bottom(
-            ankle_left,
-            frame_height
-        )
+        len(valid_ankles) > 0
         and
-        point_near_frame_bottom(
-            ankle_right,
-            frame_height
+        all(
+            p[1] >= bottom_limit
+            for p in valid_ankles
         )
     )
 
-    # Strong indication that lower body is outside frame.
-    if knees_at_bottom and not ankles_valid:
+    # Both knees are effectively cut off.
+    if knees_at_bottom:
+
         return False
 
+    # Ankle estimates are all outside the useful frame.
     if ankles_at_bottom:
+
         return False
 
-    # If knees are completely unavailable, do not guess.
-    if not knees_valid:
+    # --------------------------------------------------------
+    # Bounding-box test
+    # --------------------------------------------------------
+
+    if bbox is not None:
+
+        try:
+
+            x1, y1, x2, y2 = map(
+                float,
+                bbox
+            )
+
+            bbox_bottom = y2
+
+            # If the person's detected body extends
+            # to the camera bottom and ankle information
+            # is unavailable, treat as limited.
+            if (
+                bbox_bottom
+                >=
+                frame_height * 0.97
+                and
+                len(valid_ankles) == 0
+            ):
+
+                return False
+
+        except Exception:
+            pass
+
+    # Require at least one ankle when possible.
+    # This prevents upper-body-only frames from
+    # becoming STANDING.
+    if len(valid_ankles) == 0:
+
         return False
 
     return True
 
 
 # ============================================================
-# POSTURE FEATURES
+# BODY FEATURES
 # ============================================================
 
-def get_body_features(pts, frame_height):
-    """
-    Calculate body geometry.
+def get_body_features(
+    points,
+    frame_height,
+    bbox
+):
 
-    Returns:
-        dict with:
-        - torso_angle
-        - knee_angle
-        - hip_angle
-        - lower_body_visible
-    """
+    if len(points) < 33:
 
-    shoulders_valid = (
-        valid_point(pts[LEFT_SHOULDER])
-        and
-        valid_point(pts[RIGHT_SHOULDER])
-    )
-
-    hips_valid = (
-        valid_point(pts[LEFT_HIP])
-        and
-        valid_point(pts[RIGHT_HIP])
-    )
-
-    if not shoulders_valid or not hips_valid:
         return {
             "valid": False,
+            "upper_visible": False,
             "lower_body_visible": False,
             "torso_angle": None,
             "knee_angle": None,
-            "hip_angle": None
+            "hip_angle": None,
+            "body_quality": 0.0,
+            "leg_torso_ratio": 0.0
+        }
+
+    shoulders_valid = (
+        valid_point(
+            points[LEFT_SHOULDER]
+        )
+        and
+        valid_point(
+            points[RIGHT_SHOULDER]
+        )
+    )
+
+    hips_valid = (
+        valid_point(
+            points[LEFT_HIP]
+        )
+        and
+        valid_point(
+            points[RIGHT_HIP]
+        )
+    )
+
+    upper_visible = (
+        shoulders_valid
+        and
+        hips_valid
+    )
+
+    if not upper_visible:
+
+        return {
+            "valid": False,
+            "upper_visible": False,
+            "lower_body_visible": False,
+            "torso_angle": None,
+            "knee_angle": None,
+            "hip_angle": None,
+            "body_quality": 0.0,
+            "leg_torso_ratio": 0.0
         }
 
     shoulder = midpoint(
-        pts[LEFT_SHOULDER],
-        pts[RIGHT_SHOULDER]
+        points[LEFT_SHOULDER],
+        points[RIGHT_SHOULDER]
     )
 
     hip = midpoint(
-        pts[LEFT_HIP],
-        pts[RIGHT_HIP]
+        points[LEFT_HIP],
+        points[RIGHT_HIP]
     )
 
     # --------------------------------------------------------
     # Torso angle
-    #
-    # Vertical torso ≈ 0
-    # Horizontal torso ≈ 90
     # --------------------------------------------------------
 
-    dx = hip[0] - shoulder[0]
-    dy = hip[1] - shoulder[1]
-
-    torso_angle = abs(
-        math.degrees(
-            math.atan2(
-                dx,
-                dy
-            )
+    torso_angle = math.degrees(
+        math.atan2(
+            abs(
+                hip[0] - shoulder[0]
+            ),
+            abs(
+                hip[1] - shoulder[1]
+            ) + 1e-6
         )
-    )
-
-    # --------------------------------------------------------
-    # Lower body visibility
-    # --------------------------------------------------------
-
-    lower_visible = lower_body_visibility(
-        pts,
-        frame_height
     )
 
     # --------------------------------------------------------
     # Knee angles
     # --------------------------------------------------------
 
-    knee_angles = []
+    left_knee_angle = angle(
+        points[LEFT_HIP],
+        points[LEFT_KNEE],
+        points[LEFT_ANKLE]
+    )
 
-    if (
-        valid_point(pts[LEFT_HIP])
-        and
-        valid_point(pts[LEFT_KNEE])
-        and
-        valid_point(pts[LEFT_ANKLE])
-    ):
-        knee_angles.append(
-            angle(
-                pts[LEFT_HIP],
-                pts[LEFT_KNEE],
-                pts[LEFT_ANKLE]
-            )
-        )
+    right_knee_angle = angle(
+        points[RIGHT_HIP],
+        points[RIGHT_KNEE],
+        points[RIGHT_ANKLE]
+    )
 
-    if (
-        valid_point(pts[RIGHT_HIP])
-        and
-        valid_point(pts[RIGHT_KNEE])
-        and
-        valid_point(pts[RIGHT_ANKLE])
-    ):
-        knee_angles.append(
-            angle(
-                pts[RIGHT_HIP],
-                pts[RIGHT_KNEE],
-                pts[RIGHT_ANKLE]
-            )
+    knee_angles = [
+        x for x in (
+            left_knee_angle,
+            right_knee_angle
         )
+        if x is not None
+    ]
 
     knee_angle = (
-        sum(knee_angles) / len(knee_angles)
+        sum(knee_angles)
+        /
+        len(knee_angles)
         if knee_angles
         else None
     )
@@ -456,50 +608,178 @@ def get_body_features(pts, frame_height):
     # Hip angles
     # --------------------------------------------------------
 
-    hip_angles = []
+    left_hip_angle = angle(
+        points[LEFT_SHOULDER],
+        points[LEFT_HIP],
+        points[LEFT_KNEE]
+    )
 
-    if (
-        valid_point(pts[LEFT_SHOULDER])
-        and
-        valid_point(pts[LEFT_HIP])
-        and
-        valid_point(pts[LEFT_KNEE])
-    ):
-        hip_angles.append(
-            angle(
-                pts[LEFT_SHOULDER],
-                pts[LEFT_HIP],
-                pts[LEFT_KNEE]
-            )
-        )
+    right_hip_angle = angle(
+        points[RIGHT_SHOULDER],
+        points[RIGHT_HIP],
+        points[RIGHT_KNEE]
+    )
 
-    if (
-        valid_point(pts[RIGHT_SHOULDER])
-        and
-        valid_point(pts[RIGHT_HIP])
-        and
-        valid_point(pts[RIGHT_KNEE])
-    ):
-        hip_angles.append(
-            angle(
-                pts[RIGHT_SHOULDER],
-                pts[RIGHT_HIP],
-                pts[RIGHT_KNEE]
-            )
+    hip_angles = [
+        x for x in (
+            left_hip_angle,
+            right_hip_angle
         )
+        if x is not None
+    ]
 
     hip_angle = (
-        sum(hip_angles) / len(hip_angles)
+        sum(hip_angles)
+        /
+        len(hip_angles)
         if hip_angles
         else None
     )
 
+    # --------------------------------------------------------
+    # Lower body visibility
+    # --------------------------------------------------------
+
+    lower_visible = lower_body_visibility(
+        points,
+        frame_height,
+        bbox
+    )
+
+    # --------------------------------------------------------
+    # Leg / torso ratio
+    # --------------------------------------------------------
+
+    leg_lengths = []
+
+    left_leg_valid = (
+        valid_point(
+            points[LEFT_HIP]
+        )
+        and
+        valid_point(
+            points[LEFT_KNEE]
+        )
+        and
+        valid_point(
+            points[LEFT_ANKLE]
+        )
+    )
+
+    if left_leg_valid:
+
+        leg_lengths.append(
+            distance(
+                points[LEFT_HIP],
+                points[LEFT_KNEE]
+            )
+            +
+            distance(
+                points[LEFT_KNEE],
+                points[LEFT_ANKLE]
+            )
+        )
+
+    right_leg_valid = (
+        valid_point(
+            points[RIGHT_HIP]
+        )
+        and
+        valid_point(
+            points[RIGHT_KNEE]
+        )
+        and
+        valid_point(
+            points[RIGHT_ANKLE]
+        )
+    )
+
+    if right_leg_valid:
+
+        leg_lengths.append(
+            distance(
+                points[RIGHT_HIP],
+                points[RIGHT_KNEE]
+            )
+            +
+            distance(
+                points[RIGHT_KNEE],
+                points[RIGHT_ANKLE]
+            )
+        )
+
+    leg_length = (
+        max(leg_lengths)
+        if leg_lengths
+        else 0.0
+    )
+
+    torso_length = distance(
+        shoulder,
+        hip
+    )
+
+    leg_torso_ratio = 0.0
+
+    if torso_length > 0:
+
+        leg_torso_ratio = (
+            leg_length
+            /
+            torso_length
+        )
+
+    # --------------------------------------------------------
+    # Body quality
+    # --------------------------------------------------------
+
+    upper_points = [
+        points[LEFT_SHOULDER],
+        points[RIGHT_SHOULDER],
+        points[LEFT_HIP],
+        points[RIGHT_HIP]
+    ]
+
+    lower_points = [
+        points[LEFT_KNEE],
+        points[RIGHT_KNEE],
+        points[LEFT_ANKLE],
+        points[RIGHT_ANKLE]
+    ]
+
+    upper_score = (
+        sum(
+            valid_point(p)
+            for p in upper_points
+        )
+        /
+        len(upper_points)
+    )
+
+    lower_score = (
+        sum(
+            valid_point(p)
+            for p in lower_points
+        )
+        /
+        len(lower_points)
+    )
+
+    body_quality = (
+        0.45 * upper_score
+        +
+        0.55 * lower_score
+    )
+
     return {
         "valid": True,
+        "upper_visible": upper_visible,
         "lower_body_visible": lower_visible,
         "torso_angle": torso_angle,
         "knee_angle": knee_angle,
-        "hip_angle": hip_angle
+        "hip_angle": hip_angle,
+        "body_quality": clamp(body_quality),
+        "leg_torso_ratio": leg_torso_ratio
     }
 
 
@@ -507,24 +787,31 @@ def get_body_features(pts, frame_height):
 # POSTURE CLASSIFICATION
 # ============================================================
 
-def classify_posture(features):
-    """
-    Conservative posture classification.
-
-    IMPORTANT:
-    When lower body is not visible we return LIMITED_VIEW.
-    We never guess STANDING from only the upper body.
-    """
+def classify_posture(
+    features,
+    track
+):
 
     if not features["valid"]:
+
         return (
             "limited_view",
-            "upper body landmarks insufficient"
+            0.0,
+            "insufficient body landmarks"
         )
 
-    lower_visible = features[
-        "lower_body_visible"
-    ]
+    # --------------------------------------------------------
+    # CRITICAL:
+    # Never classify upper-body-only detection as standing.
+    # --------------------------------------------------------
+
+    if not features["lower_body_visible"]:
+
+        return (
+            "limited_view",
+            features["body_quality"],
+            "lower body not reliably visible"
+        )
 
     torso_angle = features[
         "torso_angle"
@@ -538,20 +825,19 @@ def classify_posture(features):
         "hip_angle"
     ]
 
-    # --------------------------------------------------------
-    # LIMITED VIEW
-    # --------------------------------------------------------
+    body_quality = features[
+        "body_quality"
+    ]
 
-    if not lower_visible:
-        return (
-            "limited_view",
-            "lower body not reliably visible"
-        )
+    leg_torso_ratio = features[
+        "leg_torso_ratio"
+    ]
 
-    # We need actual leg information.
     if knee_angle is None:
+
         return (
             "limited_view",
+            body_quality,
             "knee landmarks unavailable"
         )
 
@@ -559,79 +845,344 @@ def classify_posture(features):
     # FALLING
     # --------------------------------------------------------
 
-    if torso_angle >= 55:
+    if torso_angle >= FALL_TORSO_ANGLE:
+
+        confidence = clamp(
+            0.65
+            +
+            (
+                torso_angle
+                -
+                FALL_TORSO_ANGLE
+            )
+            /
+            40.0
+            *
+            0.35
+        )
+
+        confidence *= (
+            0.6
+            +
+            0.4 * body_quality
+        )
+
         return (
             "falling",
-            "torso angle indicates horizontal posture"
+            confidence,
+            "horizontal torso orientation"
         )
 
     # --------------------------------------------------------
-    # SITTING
-    #
-    # Sitting normally produces a substantially
-    # reduced knee angle.
+    # SITTING SCORE
     # --------------------------------------------------------
 
-    if knee_angle < 145:
-        return (
-            "sitting",
-            f"knee angle {knee_angle:.1f}"
-        )
+    sitting_score = 0.0
 
-    # More tolerant sitting condition.
-    if (
-        knee_angle < 165
-        and
-        hip_angle is not None
-        and
-        hip_angle < 125
-    ):
-        return (
-            "sitting",
-            (
-                f"knee={knee_angle:.1f}, "
-                f"hip={hip_angle:.1f}"
+    if knee_angle < STRONG_SITTING_KNEE_ANGLE:
+
+        sitting_score += 0.50
+
+    elif knee_angle < SITTING_KNEE_ANGLE:
+
+        sitting_score += 0.35
+
+    if hip_angle is not None:
+
+        if hip_angle < 115:
+
+            sitting_score += 0.25
+
+        elif hip_angle < 135:
+
+            sitting_score += 0.15
+
+    if leg_torso_ratio > 0:
+
+        if leg_torso_ratio < 0.85:
+
+            sitting_score += 0.20
+
+        elif leg_torso_ratio < 1.05:
+
+            sitting_score += 0.10
+
+    sitting_confidence = clamp(
+        sitting_score
+        +
+        0.15 * body_quality
+    )
+
+    # --------------------------------------------------------
+    # STANDING SCORE
+    # --------------------------------------------------------
+
+    standing_score = 0.0
+
+    if knee_angle >= STANDING_KNEE_ANGLE:
+
+        standing_score += 0.50
+
+    elif knee_angle >= 155:
+
+        standing_score += 0.20
+
+    if torso_angle <= UPRIGHT_TORSO_ANGLE:
+
+        standing_score += 0.30
+
+    if leg_torso_ratio >= 1.0:
+
+        standing_score += 0.20
+
+    standing_confidence = clamp(
+        standing_score
+        +
+        0.15 * body_quality
+    )
+
+    # --------------------------------------------------------
+    # WALKING
+    # --------------------------------------------------------
+
+    movement = getattr(
+        track,
+        "body_movement",
+        0.0
+    )
+
+    walking_confidence = 0.0
+
+    if movement >= WALKING_MOVEMENT_THRESHOLD:
+
+        walking_confidence = clamp(
+            0.55
+            +
+            min(
+                0.35,
+                movement / 40.0
             )
         )
 
     # --------------------------------------------------------
-    # STANDING
+    # Choose best state
+    # --------------------------------------------------------
+
+    scores = {
+        "sitting": sitting_confidence,
+        "standing": standing_confidence,
+        "walking": walking_confidence
+    }
+
+    ranked = sorted(
+        scores.items(),
+        key=lambda item: item[1],
+        reverse=True
+    )
+
+    state, confidence = ranked[0]
+
+    second_confidence = ranked[1][1]
+
+    # --------------------------------------------------------
+    # Ambiguous classification
     # --------------------------------------------------------
 
     if (
-        torso_angle < 35
-        and
-        knee_angle >= 165
-    ):
-        return (
-            "standing",
-            (
-                f"torso={torso_angle:.1f}, "
-                f"knee={knee_angle:.1f}"
-            )
+        confidence < MIN_POSTURE_CONFIDENCE
+        or
+        (
+            confidence - second_confidence
+            < 0.10
+            and
+            confidence < 0.75
         )
+    ):
 
-    # --------------------------------------------------------
-    # WALKING / MOVING
-    # --------------------------------------------------------
-
-    if knee_angle < 175:
         return (
-            "walking",
-            f"knee angle {knee_angle:.1f}"
+            "uncertain",
+            confidence,
+            (
+                f"sitting={sitting_confidence:.2f}; "
+                f"standing={standing_confidence:.2f}; "
+                f"walking={walking_confidence:.2f}"
+            )
         )
 
     return (
-        "unknown",
-        "posture not confidently classified"
+        state,
+        confidence,
+        (
+            f"sitting={sitting_confidence:.2f}; "
+            f"standing={standing_confidence:.2f}; "
+            f"walking={walking_confidence:.2f}"
+        )
     )
+
+
+# ============================================================
+# POSTURE SMOOTHING
+# ============================================================
+
+def stabilize_posture(
+    track,
+    detected_state,
+    confidence,
+    now
+):
+
+    if not hasattr(
+        track,
+        "candidate_state"
+    ):
+
+        track.candidate_state = None
+
+    if not hasattr(
+        track,
+        "candidate_started"
+    ):
+
+        track.candidate_started = None
+
+    if not hasattr(
+        track,
+        "posture_history"
+    ):
+
+        track.posture_history = deque(
+            maxlen=POSTURE_HISTORY_SIZE
+        )
+
+    # --------------------------------------------------------
+    # Limited view must be immediate.
+    # --------------------------------------------------------
+
+    if detected_state == "limited_view":
+
+        track.candidate_state = None
+        track.candidate_started = None
+
+        track.posture_history.clear()
+
+        return "limited_view"
+
+    # --------------------------------------------------------
+    # Fall should be responsive.
+    # --------------------------------------------------------
+
+    if detected_state == "falling":
+
+        track.candidate_state = None
+        track.candidate_started = None
+
+        return "falling"
+
+    # --------------------------------------------------------
+    # Uncertain
+    # --------------------------------------------------------
+
+    if detected_state == "uncertain":
+
+        if track.state not in (
+            "unknown",
+            "limited_view",
+            "uncertain"
+        ):
+
+            return track.state
+
+        return "uncertain"
+
+    # --------------------------------------------------------
+    # Same state
+    # --------------------------------------------------------
+
+    if detected_state == track.state:
+
+        track.candidate_state = None
+        track.candidate_started = None
+
+        track.posture_history.clear()
+
+        return track.state
+
+    # --------------------------------------------------------
+    # New candidate
+    # --------------------------------------------------------
+
+    if (
+        track.candidate_state
+        != detected_state
+    ):
+
+        track.candidate_state = (
+            detected_state
+        )
+
+        track.candidate_started = now
+
+        track.posture_history.clear()
+
+    track.posture_history.append(
+        detected_state
+    )
+
+    recent = list(
+        track.posture_history
+    )[
+        -POSTURE_CONFIRM_FRAMES:
+    ]
+
+    frame_confirmed = (
+        len(recent)
+        >= POSTURE_CONFIRM_FRAMES
+        and
+        all(
+            state == detected_state
+            for state in recent
+        )
+    )
+
+    time_confirmed = (
+        track.candidate_started
+        is not None
+        and
+        now
+        -
+        track.candidate_started
+        >= POSTURE_CONFIRM_SECONDS
+    )
+
+    if (
+        frame_confirmed
+        and
+        time_confirmed
+    ):
+
+        track.candidate_state = None
+        track.candidate_started = None
+
+        track.posture_history.clear()
+
+        return detected_state
+
+    if track.state != "unknown":
+
+        return track.state
+
+    return detected_state
 
 
 # ============================================================
 # ZONE
 # ============================================================
 
-def inside_zone(center, width, height):
+def inside_zone(
+    center,
+    width,
+    height
+):
 
     zone = cfg(
         "ZONE",
@@ -656,14 +1207,210 @@ def inside_zone(center, width, height):
     )
 
 
+def draw_zone(
+    frame
+):
+
+    h, w = frame.shape[:2]
+
+    zone = cfg(
+        "ZONE",
+        (
+            0.45,
+            0.20,
+            0.90,
+            0.90
+        )
+    )
+
+    x1, y1, x2, y2 = zone
+
+    p1 = (
+        int(x1 * w),
+        int(y1 * h)
+    )
+
+    p2 = (
+        int(x2 * w),
+        int(y2 * h)
+    )
+
+    cv2.rectangle(
+        frame,
+        p1,
+        p2,
+        (255, 180, 0),
+        2
+    )
+
+    cv2.putText(
+        frame,
+        "MONITORING ZONE",
+        (
+            p1[0],
+            max(
+                25,
+                p1[1] - 8
+            )
+        ),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.6,
+        (255, 180, 0),
+        2
+    )
+
+
 # ============================================================
-# DRAWING
+# CSV LOGGING
+# ============================================================
+
+def log_csv_event(
+    track_id,
+    event,
+    activity,
+    details,
+    image_path
+):
+
+    stamp = timestamp()
+
+    with EVENT_LOG.open(
+        "a",
+        newline=""
+    ) as file:
+
+        writer = csv.writer(file)
+
+        writer.writerow([
+            stamp,
+            track_id,
+            event,
+            activity,
+            details,
+            image_path
+        ])
+
+    print(
+        f"[ALERT] {stamp} | "
+        f"Person {track_id} | "
+        f"{event} | "
+        f"{details}"
+    )
+
+
+# ============================================================
+# EVENT PIPELINE
+# ============================================================
+
+def capture_and_log(
+    frame,
+    track_id,
+    event_type,
+    activity,
+    details,
+    category="events"
+):
+
+    try:
+
+        event_id, image_path = (
+            capture_event(
+                frame=frame,
+                person_id=track_id,
+                event_type=event_type,
+                activity=activity,
+                details=details,
+                category=category
+            )
+        )
+
+        log_csv_event(
+            track_id,
+            event_type,
+            activity,
+            details,
+            image_path
+        )
+
+        return (
+            event_id,
+            image_path
+        )
+
+    except Exception as exc:
+
+        print(
+            f"[ERROR] Could not capture "
+            f"{event_type} for Person "
+            f"{track_id}: {exc}"
+        )
+
+        return (
+            None,
+            None
+        )
+
+
+# ============================================================
+# EVENT COOLDOWN
+# ============================================================
+
+def can_alert(
+    track,
+    event_name,
+    now,
+    cooldown=ALERT_COOLDOWN_SECONDS
+):
+
+    if not hasattr(
+        track,
+        "event_alert_times"
+    ):
+
+        track.event_alert_times = {}
+
+    previous = (
+        track.event_alert_times.get(
+            event_name
+        )
+    )
+
+    if previous is None:
+
+        return True
+
+    return (
+        now - previous
+        >= cooldown
+    )
+
+
+def mark_alert(
+    track,
+    event_name,
+    now
+):
+
+    if not hasattr(
+        track,
+        "event_alert_times"
+    ):
+
+        track.event_alert_times = {}
+
+    track.event_alert_times[
+        event_name
+    ] = now
+
+
+# ============================================================
+# SKELETON
 # ============================================================
 
 def draw_skeleton(
     frame,
     points,
-    color=(0, 255, 0)
+    color
 ):
 
     connections = [
@@ -700,6 +1447,7 @@ def draw_skeleton(
             or
             b >= len(points)
         ):
+
             continue
 
         if (
@@ -707,6 +1455,7 @@ def draw_skeleton(
             or
             not valid_point(points[b])
         ):
+
             continue
 
         cv2.line(
@@ -740,160 +1489,26 @@ def draw_skeleton(
         )
 
 
-def draw_zone(frame):
-
-    h, w = frame.shape[:2]
-
-    zone = cfg(
-        "ZONE",
-        (
-            0.45,
-            0.20,
-            0.90,
-            0.90
-        )
-    )
-
-    x1, y1, x2, y2 = zone
-
-    cv2.rectangle(
-        frame,
-        (
-            int(x1 * w),
-            int(y1 * h)
-        ),
-        (
-            int(x2 * w),
-            int(y2 * h)
-        ),
-        (255, 180, 0),
-        2
-    )
-
-    cv2.putText(
-        frame,
-        "MONITORING ZONE",
-        (
-            int(x1 * w),
-            max(
-                25,
-                int(y1 * h) - 8
-            )
-        ),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.6,
-        (255, 180, 0),
-        2
-    )
-
-
-# ============================================================
-# EVENT HELPERS
-# ============================================================
-
-def capture_and_log(
-    frame,
-    track_id,
-    event_type,
-    activity,
-    details,
-    category="events"
-):
-    """
-    Single pipeline for:
-        1. saving image
-        2. logging SQLite event
-        3. printing event
-    """
-
-    try:
-
-        event_id, path = capture_event(
-            frame=frame,
-            person_id=track_id,
-            event_type=event_type,
-            activity=activity,
-            details=details,
-            category=category
-        )
-
-        return event_id, path
-
-    except Exception as exc:
-
-        print(
-            f"[ERROR] Could not capture "
-            f"{event_type} for Person {track_id}: "
-            f"{exc}"
-        )
-
-        return None, None
-
-
-# ============================================================
-# EVENT COOLDOWN
-# ============================================================
-
-def can_alert(
-    track,
-    event_name,
-    now,
-    cooldown=ALERT_COOLDOWN_SECONDS
-):
-
-    if not hasattr(
-        track,
-        "event_alert_times"
-    ):
-        track.event_alert_times = {}
-
-    previous = track.event_alert_times.get(
-        event_name
-    )
-
-    if previous is None:
-        return True
-
-    return (
-        now - previous
-        >= cooldown
-    )
-
-
-def mark_alert(
-    track,
-    event_name,
-    now
-):
-
-    if not hasattr(
-        track,
-        "event_alert_times"
-    ):
-        track.event_alert_times = {}
-
-    track.event_alert_times[
-        event_name
-    ] = now
-
-
 # ============================================================
 # MAIN
 # ============================================================
 
 def main():
 
-    print("=" * 60)
+    print("=" * 70)
     print("AI CAMERA TRACKER")
-    print("=" * 60)
+    print("Smart Posture + Limited View + Event Monitoring")
+    print("=" * 70)
 
     ensure_model()
     ensure_dirs()
 
-    # Initialize SQLite database.
     init_db()
 
-    print("[INFO] SQLite database initialized.")
+    print(
+        "[INFO] SQLite database initialized."
+    )
+
     print(
         f"[INFO] Database: "
         f"{ROOT / 'logs' / 'camera_events.db'}"
@@ -941,17 +1556,21 @@ def main():
         FRAME_HEIGHT
     )
 
-    print("[INFO] Camera started.")
-    print("[INFO] Press C to capture manually.")
-    print("[INFO] Press Q to quit.")
+    print(
+        "[INFO] Camera started."
+    )
+
+    print(
+        "[INFO] Press C to capture manually."
+    )
+
+    print(
+        "[INFO] Press Q to quit."
+    )
 
     timestamp_ms = 0
 
     previous_time = time.monotonic()
-
-    # ========================================================
-    # MAIN LOOP
-    # ========================================================
 
     try:
 
@@ -960,15 +1579,20 @@ def main():
             ok, frame = cap.read()
 
             if not ok:
+
                 print(
-                    "[ERROR] Camera frame could not be read."
+                    "[ERROR] Camera frame "
+                    "could not be read."
                 )
+
                 break
 
             now = time.monotonic()
 
-            elapsed_frame = (
-                now - previous_time
+            elapsed = (
+                now
+                -
+                previous_time
             )
 
             previous_time = now
@@ -976,38 +1600,38 @@ def main():
             timestamp_ms += max(
                 1,
                 int(
-                    elapsed_frame * 1000
+                    elapsed * 1000
                 )
             )
 
             h, w = frame.shape[:2]
 
-            # ------------------------------------------------
-            # Pose detection
-            # ------------------------------------------------
+            # =================================================
+            # POSE DETECTION
+            # =================================================
 
             detections = detector.detect(
                 frame,
                 timestamp_ms
             )
 
-            # ------------------------------------------------
-            # Tracking
-            # ------------------------------------------------
+            # =================================================
+            # TRACKING
+            # =================================================
 
             tracks = tracker.update(
                 detections,
                 now
             )
 
-            # ------------------------------------------------
-            # Draw monitoring zone
-            # ------------------------------------------------
+            # =================================================
+            # ZONE
+            # =================================================
 
             draw_zone(frame)
 
             # =================================================
-            # PROCESS EACH PERSON
+            # PROCESS PEOPLE
             # =================================================
 
             for track in tracks:
@@ -1015,285 +1639,300 @@ def main():
                 if track.missed:
                     continue
 
-                pts = track.landmarks
+                points = track.landmarks
 
-                # ------------------------------------------------
-                # Safety check
-                # ------------------------------------------------
-
-                if len(pts) < 33:
+                if len(points) < 33:
                     continue
 
                 # ------------------------------------------------
-                # Calculate posture features
+                # Body features
                 # ------------------------------------------------
 
                 features = get_body_features(
-                    pts,
-                    h
+                    points,
+                    h,
+                    track.bbox
                 )
 
-                state, reason = classify_posture(
-                    features
-                )
-
-                torso_angle = features[
-                    "torso_angle"
-                ]
-
-                knee_angle = features[
-                    "knee_angle"
-                ]
-
-                hip_angle = features[
-                    "hip_angle"
-                ]
-
-                lower_visible = features[
-                    "lower_body_visible"
-                ]
-
                 # ------------------------------------------------
-                # State smoothing
-                #
-                # Prevents one-frame fluctuations.
+                # Movement
                 # ------------------------------------------------
 
-                if not hasattr(
+                previous_center = getattr(
                     track,
-                    "state_history"
-                ):
-                    track.state_history = deque(
-                        maxlen=7
-                    )
-
-                track.state_history.append(
-                    state
+                    "previous_center",
+                    None
                 )
 
-                counts = {}
+                if previous_center is None:
 
-                for s in track.state_history:
-                    counts[s] = (
-                        counts.get(s, 0)
-                        + 1
+                    movement = 0.0
+
+                else:
+
+                    movement = distance(
+                        track.center,
+                        previous_center
                     )
 
-                stable_state = max(
-                    counts,
-                    key=counts.get
+                track.previous_center = (
+                    track.center
                 )
 
-                # Only accept a new state when
-                # it appears repeatedly.
-                if (
-                    stable_state != track.state
-                    and
-                    counts[stable_state] >= 3
-                ):
+                track.body_movement = movement
 
-                    previous_state = (
-                        track.state
+                # ------------------------------------------------
+                # Classification
+                # ------------------------------------------------
+
+                detected_state, confidence, reason = (
+                    classify_posture(
+                        features,
+                        track
                     )
+                )
+
+                previous_state = (
+                    track.state
+                )
+
+                state = stabilize_posture(
+                    track,
+                    detected_state,
+                    confidence,
+                    now
+                )
+
+                # ------------------------------------------------
+                # State change
+                # ------------------------------------------------
+
+                if state != previous_state:
 
                     track.previous_state = (
                         previous_state
                     )
 
-                    track.state = (
-                        stable_state
-                    )
+                    track.state = state
 
                     track.state_started = now
 
-                    # Reset activity alerts.
                     track.sitting_alerted = False
                     track.standing_alerted = False
 
-                    # ------------------------------------------------
-                    # STATE CHANGE EVENT
-                    # ------------------------------------------------
+                    # =========================================
+                    # POSTURE CHANGE
+                    # =========================================
 
-                    if (
-                        stable_state
-                        != "unknown"
+                    if state in (
+                        "sitting",
+                        "standing",
+                        "walking",
+                        "falling"
                     ):
 
                         if can_alert(
                             track,
-                            f"STATE_{stable_state}",
-                            now,
-                            3
+                            f"STATE_{state}",
+                            now
                         ):
 
                             details = (
-                                f"previous={previous_state}; "
-                                f"reason={reason}; "
+                                f"previous="
+                                f"{previous_state}; "
+                                f"confidence="
+                                f"{confidence:.2f}; "
                                 f"torso_angle="
-                                f"{torso_angle}; "
+                                f"{features['torso_angle']}; "
                                 f"knee_angle="
-                                f"{knee_angle}; "
+                                f"{features['knee_angle']}; "
                                 f"hip_angle="
-                                f"{hip_angle}; "
-                                f"lower_body_visible="
-                                f"{lower_visible}"
+                                f"{features['hip_angle']}; "
+                                f"reason={reason}"
+                            )
+
+                            category = (
+                                "fall"
+                                if state == "falling"
+                                else "posture"
                             )
 
                             capture_and_log(
                                 frame,
                                 track.id,
                                 "POSTURE_CHANGE",
-                                stable_state,
+                                state,
                                 details,
-                                category="posture"
+                                category
                             )
 
                             mark_alert(
                                 track,
-                                f"STATE_{stable_state}",
+                                f"STATE_{state}",
                                 now
                             )
 
-                state = track.state
+                    # =========================================
+                    # LIMITED VIEW
+                    # =========================================
 
-                # ------------------------------------------------
-                # If state is still unknown, use current
-                # classification for display.
-                # ------------------------------------------------
+                    elif state == "limited_view":
 
-                display_state = (
-                    state
-                    if state != "unknown"
-                    else stable_state
-                )
+                        if can_alert(
+                            track,
+                            "LIMITED_VIEW",
+                            now,
+                            5
+                        ):
 
-                # ------------------------------------------------
-                # Hip position / fall tracking
-                # ------------------------------------------------
+                            details = (
+                                "Lower body not "
+                                "reliably visible. "
+                                "Posture classification "
+                                "suppressed to prevent "
+                                "false standing/sitting."
+                            )
 
-                if (
-                    valid_point(
-                        pts[LEFT_HIP]
-                    )
-                    and
-                    valid_point(
-                        pts[RIGHT_HIP]
-                    )
-                ):
+                            capture_and_log(
+                                frame,
+                                track.id,
+                                "LIMITED_VIEW",
+                                "limited_view",
+                                details,
+                                "limited_view"
+                            )
 
-                    hip = midpoint(
-                        pts[LEFT_HIP],
-                        pts[RIGHT_HIP]
-                    )
-
-                    hip_y = (
-                        hip[1] / h
-                    )
-
-                else:
-
-                    hip = track.center
-
-                    hip_y = (
-                        hip[1] / h
-                    )
-
-                hip_drop = 0
-
-                if (
-                    hasattr(
-                        track,
-                        "previous_hip_y"
-                    )
-                    and
-                    track.previous_hip_y
-                    is not None
-                ):
-
-                    hip_drop = (
-                        hip_y
-                        -
-                        track.previous_hip_y
-                    )
-
-                track.previous_hip_y = hip_y
+                            mark_alert(
+                                track,
+                                "LIMITED_VIEW",
+                                now
+                            )
 
                 # =================================================
                 # FALL DETECTION
                 # =================================================
 
                 if (
-                    track.previous_state
-                    in (
-                        "standing",
-                        "walking"
-                    )
+                    state != "limited_view"
                     and
-                    display_state
-                    == "falling"
-                    and
-                    hip_drop
-                    >= FALL_DROP_RATIO
+                    features["lower_body_visible"]
                 ):
 
                     if (
-                        track.fall_candidate_started
-                        is None
+                        valid_point(
+                            points[LEFT_HIP]
+                        )
+                        and
+                        valid_point(
+                            points[RIGHT_HIP]
+                        )
                     ):
 
-                        track.fall_candidate_started = now
+                        hip = midpoint(
+                            points[LEFT_HIP],
+                            points[RIGHT_HIP]
+                        )
 
-                if (
-                    display_state
-                    != "falling"
-                ):
+                        hip_y = (
+                            hip[1]
+                            /
+                            h
+                        )
 
-                    track.fall_candidate_started = None
+                        previous_hip_y = getattr(
+                            track,
+                            "previous_hip_y",
+                            None
+                        )
 
-                if (
-                    track.fall_candidate_started
-                    is not None
-                    and
-                    now
-                    -
-                    track.fall_candidate_started
-                    >= FALL_CONFIRM_SECONDS
-                    and
-                    can_alert(
-                        track,
-                        "FALL",
-                        now
-                    )
-                ):
+                        if previous_hip_y is None:
 
-                    details = (
-                        f"torso_angle="
-                        f"{torso_angle}; "
-                        f"hip_drop="
-                        f"{hip_drop:.3f}; "
-                        f"lower_body_visible="
-                        f"{lower_visible}"
-                    )
+                            hip_drop = 0.0
 
-                    capture_and_log(
-                        frame,
-                        track.id,
-                        "FALL_DETECTED",
-                        "falling",
-                        details,
-                        category="falls"
-                    )
+                        else:
 
-                    mark_alert(
-                        track,
-                        "FALL",
-                        now
-                    )
+                            hip_drop = (
+                                hip_y
+                                -
+                                previous_hip_y
+                            )
 
-                    track.fall_candidate_started = None
+                        track.previous_hip_y = hip_y
+
+                        # Sudden downward movement.
+                        if (
+                            hip_drop
+                            >= FALL_DROP_RATIO
+                        ):
+
+                            if (
+                                track.fall_candidate_started
+                                is None
+                            ):
+
+                                track.fall_candidate_started = (
+                                    now
+                                )
+
+                            fall_duration = (
+                                now
+                                -
+                                track.fall_candidate_started
+                            )
+
+                            torso_horizontal = (
+                                features["torso_angle"]
+                                >= FALL_TORSO_ANGLE
+                            )
+
+                            if (
+                                fall_duration
+                                >= FALL_CONFIRM_SECONDS
+                                and
+                                torso_horizontal
+                                and
+                                can_alert(
+                                    track,
+                                    "FALL",
+                                    now,
+                                    15
+                                )
+                            ):
+
+                                track.state = "falling"
+
+                                details = (
+                                    f"hip_drop="
+                                    f"{hip_drop:.3f}; "
+                                    f"torso_angle="
+                                    f"{features['torso_angle']:.1f}; "
+                                    f"confirmation="
+                                    f"{fall_duration:.2f}s"
+                                )
+
+                                capture_and_log(
+                                    frame,
+                                    track.id,
+                                    "FALL_DETECTED",
+                                    "falling",
+                                    details,
+                                    "fall"
+                                )
+
+                                mark_alert(
+                                    track,
+                                    "FALL",
+                                    now
+                                )
+
+                                track.fall_alerted_at = now
+
+                        else:
+
+                            track.fall_candidate_started = None
 
                 # =================================================
-                # STATE DWELL
+                # STATE TIMER
                 # =================================================
 
                 state_elapsed = (
@@ -1302,116 +1941,66 @@ def main():
                     track.state_started
                 )
 
-                # -------------------------------------------------
-                # SITTING
-                # -------------------------------------------------
+                # =================================================
+                # SITTING DWELL
+                # =================================================
 
                 if (
-                    display_state
-                    == "sitting"
+                    state == "sitting"
                     and
                     state_elapsed
                     >= SITTING_DWELL_SECONDS
+                    and
+                    not track.sitting_alerted
                 ):
 
-                    if (
-                        not track.sitting_alerted
-                    ):
+                    details = (
+                        f"Sitting for "
+                        f"{fmt(state_elapsed)}."
+                    )
 
-                        details = (
-                            f"{fmt(state_elapsed)} "
-                            f"sitting; "
-                            f"knee_angle="
-                            f"{knee_angle}"
-                        )
+                    capture_and_log(
+                        frame,
+                        track.id,
+                        "SITTING_DWELL_THRESHOLD",
+                        state,
+                        details,
+                        "dwell"
+                    )
 
-                        capture_and_log(
-                            frame,
-                            track.id,
-                            "SITTING_DWELL_THRESHOLD",
-                            "sitting",
-                            details,
-                            category="sitting"
-                        )
+                    track.sitting_alerted = True
 
-                        track.sitting_alerted = True
-
-                # -------------------------------------------------
-                # STANDING
-                # -------------------------------------------------
+                # =================================================
+                # STANDING DWELL
+                # =================================================
 
                 if (
-                    display_state
-                    == "standing"
+                    state == "standing"
                     and
                     state_elapsed
                     >= STANDING_DWELL_SECONDS
+                    and
+                    not track.standing_alerted
                 ):
 
-                    if (
-                        not track.standing_alerted
-                    ):
+                    details = (
+                        f"Standing for "
+                        f"{fmt(state_elapsed)}."
+                    )
 
-                        details = (
-                            f"{fmt(state_elapsed)} "
-                            f"standing; "
-                            f"knee_angle="
-                            f"{knee_angle}"
-                        )
+                    capture_and_log(
+                        frame,
+                        track.id,
+                        "STANDING_DWELL_THRESHOLD",
+                        state,
+                        details,
+                        "dwell"
+                    )
 
-                        capture_and_log(
-                            frame,
-                            track.id,
-                            "STANDING_DWELL_THRESHOLD",
-                            "standing",
-                            details,
-                            category="standing"
-                        )
-
-                        track.standing_alerted = True
+                    track.standing_alerted = True
 
                 # =================================================
-                # LIMITED VIEW EVENT
-                # =================================================
-
-                if (
-                    display_state
-                    == "limited_view"
-                ):
-
-                    if can_alert(
-                        track,
-                        "LIMITED_VIEW",
-                        now,
-                        15
-                    ):
-
-                        details = (
-                            "Lower body is not "
-                            "reliably visible; "
-                            "posture classification "
-                            "suppressed to avoid "
-                            "false standing/sitting "
-                            "classification."
-                        )
-
-                        capture_and_log(
-                            frame,
-                            track.id,
-                            "LIMITED_VIEW",
-                            "limited_view",
-                            details,
-                            category="limited_view"
-                        )
-
-                        mark_alert(
-                            track,
-                            "LIMITED_VIEW",
-                            now
-                        )
-
-                # =================================================
-                # ZONE DETECTION
+                # MONITORING ZONE
                 # =================================================
 
                 in_zone = inside_zone(
@@ -1420,25 +2009,23 @@ def main():
                     h
                 )
 
-                # -------------------------------------------------
-                # First zone observation
-                # -------------------------------------------------
+                if not hasattr(
+                    track,
+                    "was_in_zone"
+                ):
+
+                    track.was_in_zone = False
 
                 if not hasattr(
                     track,
                     "zone_initialized"
                 ):
+
                     track.zone_initialized = False
 
-                if not hasattr(
-                    track,
-                    "was_in_zone"
-                ):
-                    track.was_in_zone = False
-
-                # -------------------------------------------------
-                # ENTER
-                # -------------------------------------------------
+                # ------------------------------------------------
+                # Zone entry
+                # ------------------------------------------------
 
                 if (
                     in_zone
@@ -1447,6 +2034,7 @@ def main():
                 ):
 
                     track.zone_started = now
+
                     track.zone_alerted = False
 
                     details = (
@@ -1458,17 +2046,17 @@ def main():
                         frame,
                         track.id,
                         "ZONE_ENTRY",
-                        display_state,
+                        state,
                         details,
-                        category="zone"
+                        "zone"
                     )
 
                     track.was_in_zone = True
                     track.zone_initialized = True
 
-                # -------------------------------------------------
-                # EXIT
-                # -------------------------------------------------
+                # ------------------------------------------------
+                # Zone exit
+                # ------------------------------------------------
 
                 elif (
                     not in_zone
@@ -1476,7 +2064,7 @@ def main():
                     track.was_in_zone
                 ):
 
-                    zone_duration = 0
+                    zone_duration = 0.0
 
                     if (
                         track.zone_started
@@ -1500,20 +2088,22 @@ def main():
                         frame,
                         track.id,
                         "ZONE_EXIT",
-                        display_state,
+                        state,
                         details,
-                        category="zone"
+                        "zone"
                     )
 
                     track.zone_started = None
+
                     track.zone_alerted = False
+
                     track.was_in_zone = False
 
-                # -------------------------------------------------
-                # DWELL
-                # -------------------------------------------------
+                # ------------------------------------------------
+                # Zone dwell
+                # ------------------------------------------------
 
-                zone_elapsed = 0
+                zone_elapsed = 0.0
 
                 if in_zone:
 
@@ -1521,6 +2111,7 @@ def main():
                         track.zone_started
                         is None
                     ):
+
                         track.zone_started = now
 
                     zone_elapsed = (
@@ -1537,23 +2128,24 @@ def main():
                     ):
 
                         details = (
-                            f"{fmt(zone_elapsed)} "
-                            "inside monitoring zone."
+                            f"Inside monitoring "
+                            f"zone for "
+                            f"{fmt(zone_elapsed)}."
                         )
 
                         capture_and_log(
                             frame,
                             track.id,
                             "ZONE_DWELL_THRESHOLD",
-                            display_state,
+                            state,
                             details,
-                            category="zone"
+                            "zone"
                         )
 
                         track.zone_alerted = True
 
                 # =================================================
-                # DRAW TRACK
+                # DRAW PERSON
                 # =================================================
 
                 x1, y1, x2, y2 = map(
@@ -1561,11 +2153,13 @@ def main():
                     track.bbox
                 )
 
-                # -------------------------------------------------
-                # Color based on state
-                # -------------------------------------------------
+                display_state = state
 
-                if display_state == "falling":
+                # ------------------------------------------------
+                # Color
+                # ------------------------------------------------
+
+                if state == "falling":
 
                     box_color = (
                         0,
@@ -1573,7 +2167,7 @@ def main():
                         255
                     )
 
-                elif display_state == "limited_view":
+                elif state == "limited_view":
 
                     box_color = (
                         0,
@@ -1581,7 +2175,7 @@ def main():
                         255
                     )
 
-                elif display_state == "sitting":
+                elif state == "sitting":
 
                     box_color = (
                         255,
@@ -1589,7 +2183,7 @@ def main():
                         255
                     )
 
-                elif display_state == "standing":
+                elif state == "standing":
 
                     box_color = (
                         0,
@@ -1597,12 +2191,20 @@ def main():
                         0
                     )
 
-                elif display_state == "walking":
+                elif state == "walking":
 
                     box_color = (
                         255,
                         255,
                         0
+                    )
+
+                elif state == "uncertain":
+
+                    box_color = (
+                        0,
+                        200,
+                        255
                     )
 
                 else:
@@ -1613,14 +2215,32 @@ def main():
                         255
                     )
 
-                # -------------------------------------------------
+                # ------------------------------------------------
+                # Confidence
+                # ------------------------------------------------
+
+                if state in (
+                    "limited_view",
+                    "uncertain"
+                ):
+
+                    confidence_text = "--"
+
+                else:
+
+                    confidence_text = (
+                        f"{confidence * 100:.0f}%"
+                    )
+
+                # ------------------------------------------------
                 # Main label
-                # -------------------------------------------------
+                # ------------------------------------------------
 
                 label = (
                     f"ID {track.id} | "
                     f"{display_state.upper()} | "
-                    f"{fmt(state_elapsed)}"
+                    f"{fmt(state_elapsed)} | "
+                    f"Conf {confidence_text}"
                 )
 
                 if in_zone:
@@ -1655,18 +2275,18 @@ def main():
                         )
                     ),
                     cv2.FONT_HERSHEY_SIMPLEX,
-                    0.55,
+                    0.52,
                     box_color,
                     2
                 )
 
-                # -------------------------------------------------
+                # ------------------------------------------------
                 # Skeleton
-                # -------------------------------------------------
+                # ------------------------------------------------
 
                 draw_skeleton(
                     frame,
-                    pts,
+                    points,
                     box_color
                 )
 
@@ -1674,19 +2294,19 @@ def main():
                 # LIMITED VIEW WARNING
                 # =================================================
 
-                if display_state == "limited_view":
+                if state == "limited_view":
 
                     cv2.putText(
                         frame,
-                        "LIMITED VIEW - FULL BODY REQUIRED",
+                        "LIMITED VIEW",
                         (
                             25,
                             40
                         ),
                         cv2.FONT_HERSHEY_SIMPLEX,
-                        0.7,
+                        0.8,
                         (0, 165, 255),
-                        2
+                        3
                     )
 
                     cv2.putText(
@@ -1706,7 +2326,7 @@ def main():
                 # FALL WARNING
                 # =================================================
 
-                if display_state == "falling":
+                if state == "falling":
 
                     cv2.putText(
                         frame,
@@ -1721,13 +2341,13 @@ def main():
                         3
                     )
 
-            # ====================================================
-            # CAMERA CONTROLS
-            # ====================================================
+            # =================================================
+            # CONTROLS
+            # =================================================
 
             cv2.putText(
                 frame,
-                "C = capture | Q = quit",
+                "C = capture image | Q = quit",
                 (
                     20,
                     h - 20
@@ -1738,12 +2358,12 @@ def main():
                 2
             )
 
-            # ====================================================
+            # =================================================
             # DISPLAY
-            # ====================================================
+            # =================================================
 
             cv2.imshow(
-                "AI Camera Tracker - POC",
+                "AI Camera Tracker - Smart Posture",
                 frame
             )
 
@@ -1753,68 +2373,45 @@ def main():
                 0xFF
             )
 
-            # ----------------------------------------------------
+            # =================================================
             # MANUAL CAPTURE
-            # ----------------------------------------------------
+            # =================================================
 
             if key == ord("c"):
 
-                # If a person is tracked,
-                # associate manual capture with them.
-                if tracks:
+                active_tracks = [
+                    track
+                    for track in tracks
+                    if not track.missed
+                ]
 
-                    active_tracks = [
-                        t
-                        for t in tracks
-                        if not t.missed
-                    ]
+                if active_tracks:
 
-                    if active_tracks:
+                    selected = active_tracks[0]
 
-                        selected = (
-                            active_tracks[0]
-                        )
-
-                        capture_and_log(
-                            frame,
-                            selected.id,
-                            "MANUAL_CAPTURE",
-                            selected.state,
-                            "Manual image capture requested.",
-                            category="manual"
-                        )
-
-                        print(
-                            "[INFO] Manual capture saved."
-                        )
-
-                    else:
-
-                        print(
-                            "[INFO] No active person "
-                            "to associate capture with."
-                        )
+                    capture_and_log(
+                        frame,
+                        selected.id,
+                        "MANUAL_CAPTURE",
+                        selected.state,
+                        "Manual image capture requested.",
+                        "manual"
+                    )
 
                 else:
 
-                    # Person ID 0 means camera-level
-                    # manual capture.
                     capture_and_log(
                         frame,
                         0,
                         "MANUAL_CAPTURE",
                         "unknown",
                         "Manual image capture; no person detected.",
-                        category="manual"
+                        "manual"
                     )
 
-                    print(
-                        "[INFO] Manual capture saved."
-                    )
-
-            # ----------------------------------------------------
+            # =================================================
             # QUIT
-            # ----------------------------------------------------
+            # =================================================
 
             elif key == ord("q"):
 
