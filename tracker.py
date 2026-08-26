@@ -11,7 +11,7 @@ class Track:
         self.bbox = detection["bbox"]
 
         # =====================================================
-        # Activity state
+        # ACTIVITY STATE
         # =====================================================
 
         self.state = "unknown"
@@ -22,11 +22,11 @@ class Track:
         self.candidate_state = None
         self.candidate_started = None
 
-        # Store recent posture classifications
+        # Recent posture classifications
         self.posture_history = deque(maxlen=8)
 
         # =====================================================
-        # Tracking
+        # TRACKING
         # =====================================================
 
         self.last_seen = now
@@ -35,7 +35,7 @@ class Track:
         self.previous_center = self.center
 
         # =====================================================
-        # Body movement
+        # BODY MOVEMENT
         # =====================================================
 
         self.previous_hip_y = None
@@ -43,29 +43,71 @@ class Track:
 
         self.body_movement = 0.0
 
+        # Recent body movement history
+        self.movement_history = deque(maxlen=12)
+
         # =====================================================
-        # Fall detection
+        # FALL DETECTION
         # =====================================================
 
+        # Recent normalized hip positions:
+        # (timestamp, normalized_hip_y)
+        self.hip_history = deque(maxlen=12)
+
+        # Recent torso angles:
+        # (timestamp, torso_angle)
+        self.torso_history = deque(maxlen=12)
+
+        # Candidate fall start time
         self.fall_candidate_started = None
+
+        # Last confirmed fall
         self.fall_alerted_at = None
 
+        # Prevent repeated fall events
+        self.fall_cooldown_until = 0.0
+
+        # Individual fall signals
+        self.fall_motion_detected = False
+        self.fall_horizontal_detected = False
+        self.fall_low_position_detected = False
+
         # =====================================================
-        # Activity alerts
+        # ACTIVITY ALERTS
         # =====================================================
 
         self.sitting_alerted = False
         self.standing_alerted = False
 
         # =====================================================
-        # Zone tracking
+        # ZONE TRACKING
         # =====================================================
 
         self.zone_started = None
         self.zone_alerted = False
 
+        # Previous frame zone state
         self.was_in_zone = False
+
+        # Prevent false entry/exit event on first frame
         self.zone_initialized = False
+
+        # =====================================================
+        # EVENT MANAGEMENT
+        # =====================================================
+
+        # Stores timestamps for event cooldowns.
+        #
+        # Example:
+        # {
+        #     "ZONE_ENTRY": 12345.0,
+        #     "LIMITED_VIEW": 12350.0
+        # }
+        self.last_alerts = {}
+
+    # =========================================================
+    # UPDATE TRACK
+    # =========================================================
 
     def update(self, detection, now):
 
@@ -80,10 +122,21 @@ class Track:
         self.last_seen = now
         self.missed = 0
 
+        # -----------------------------------------------------
         # Calculate movement between frames
+        # -----------------------------------------------------
+
         self.body_movement = math.hypot(
             self.center[0] - old_center[0],
             self.center[1] - old_center[1]
+        )
+
+        # Keep movement history for fall analysis.
+        self.movement_history.append(
+            (
+                now,
+                self.body_movement
+            )
         )
 
 
@@ -100,6 +153,10 @@ class CentroidTracker:
         self.next_id = 1
         self.tracks = {}
 
+    # =========================================================
+    # DISTANCE
+    # =========================================================
+
     @staticmethod
     def distance(a, b):
 
@@ -108,6 +165,10 @@ class CentroidTracker:
             a[1] - b[1]
         )
 
+    # =========================================================
+    # UPDATE
+    # =========================================================
+
     def update(
         self,
         detections,
@@ -115,7 +176,7 @@ class CentroidTracker:
     ):
 
         # =====================================================
-        # No existing tracks
+        # NO EXISTING TRACKS
         # =====================================================
 
         if not self.tracks:
@@ -132,7 +193,7 @@ class CentroidTracker:
             )
 
         # =====================================================
-        # Matching
+        # INITIAL MATCHING STATE
         # =====================================================
 
         unmatched_tracks = set(
@@ -144,6 +205,10 @@ class CentroidTracker:
         )
 
         pairs = []
+
+        # =====================================================
+        # CALCULATE TRACK ↔ DETECTION DISTANCES
+        # =====================================================
 
         for tid, track in self.tracks.items():
 
@@ -165,16 +230,19 @@ class CentroidTracker:
                 )
 
         # =====================================================
-        # Match closest track to detection
+        # MATCH CLOSEST TRACK TO DETECTION
         # =====================================================
 
         for distance, tid, i in sorted(
             pairs
         ):
 
+            # Because pairs are sorted by distance,
+            # once we exceed the maximum distance we can stop.
             if distance > self.max_distance:
                 break
 
+            # Track or detection has already been matched.
             if (
                 tid not in unmatched_tracks
                 or
@@ -182,6 +250,7 @@ class CentroidTracker:
             ):
                 continue
 
+            # Update existing track.
             self.tracks[tid].update(
                 detections[i],
                 now
@@ -196,7 +265,7 @@ class CentroidTracker:
             )
 
         # =====================================================
-        # Add new people
+        # ADD NEW PEOPLE
         # =====================================================
 
         for i in unmatched_detections:
@@ -207,26 +276,36 @@ class CentroidTracker:
             )
 
         # =====================================================
-        # Handle missed tracks
+        # HANDLE MISSED TRACKS
         # =====================================================
 
         for tid in list(
             unmatched_tracks
         ):
 
-            self.tracks[tid].missed += 1
+            track = self.tracks[tid]
 
+            track.missed += 1
+
+            # Remove the track only after it has been
+            # missing for the configured number of frames.
             if (
-                self.tracks[tid].missed
+                track.missed
                 >
                 self.max_missed
             ):
 
-                del self.tracks[tid]
+                del self.tracks[
+                    tid
+                ]
 
         return list(
             self.tracks.values()
         )
+
+    # =========================================================
+    # ADD NEW TRACK
+    # =========================================================
 
     def _add(
         self,
@@ -234,10 +313,12 @@ class CentroidTracker:
         now
     ):
 
-        self.tracks[self.next_id] = Track(
+        self.tracks[
+            self.next_id
+        ] = Track(
             self.next_id,
             detection,
             now
         )
 
-        self.next_id += 1     
+        self.next_id += 1
