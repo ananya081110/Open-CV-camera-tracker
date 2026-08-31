@@ -18,6 +18,361 @@ from object_detector import ObjectDetector
 
 
 # ============================================================
+# PREDICTIVE SUBJECT TRACKING / VIRTUAL PTZ
+# ============================================================
+
+class PredictiveSubjectTracker:
+    """
+    Predictive subject tracking layer.
+
+    Tracks the currently selected person and estimates:
+    - current position
+    - movement velocity
+    - movement speed
+    - predicted future position
+    - virtual pan direction
+    - virtual tilt direction
+
+    This does NOT physically move the camera.
+    It provides the intelligence required for a future
+    PTZ camera integration.
+    """
+
+    def __init__(
+        self,
+        frame_width,
+        frame_height,
+        prediction_frames=8,
+        smoothing=0.20,
+    ):
+
+        self.frame_width = frame_width
+        self.frame_height = frame_height
+
+        self.prediction_frames = (
+            prediction_frames
+        )
+
+        self.smoothing = (
+            smoothing
+        )
+
+        self.target_id = None
+
+        self.previous_position = None
+
+        self.predicted_position = (
+            frame_width / 2.0,
+            frame_height / 2.0
+        )
+
+        self.velocity = (
+            0.0,
+            0.0
+        )
+
+        self.speed = 0.0
+
+    # ========================================================
+    # UPDATE
+    # ========================================================
+
+    def update(self, tracks):
+
+        visible_tracks = [
+            track
+            for track in tracks
+            if not track.missed
+        ]
+
+        if not visible_tracks:
+
+            return None
+
+        target = None
+
+        # ----------------------------------------------------
+        # Keep tracking the same person if visible.
+        # ----------------------------------------------------
+
+        if self.target_id is not None:
+
+            for track in visible_tracks:
+
+                if (
+                    track.id
+                    ==
+                    self.target_id
+                ):
+
+                    target = track
+                    break
+
+        # ----------------------------------------------------
+        # If target disappeared, select a visible person.
+        # ----------------------------------------------------
+
+        if target is None:
+
+            target = visible_tracks[0]
+
+            self.target_id = (
+                target.id
+            )
+
+            self.previous_position = None
+
+        # ----------------------------------------------------
+        # Current position
+        # ----------------------------------------------------
+
+        current_position = (
+            float(target.center[0]),
+            float(target.center[1])
+        )
+
+        # ----------------------------------------------------
+        # Calculate velocity
+        # ----------------------------------------------------
+
+        if (
+            self.previous_position
+            is None
+        ):
+
+            velocity_x = 0.0
+            velocity_y = 0.0
+
+        else:
+
+            velocity_x = (
+                current_position[0]
+                -
+                self.previous_position[0]
+            )
+
+            velocity_y = (
+                current_position[1]
+                -
+                self.previous_position[1]
+            )
+
+        self.previous_position = (
+            current_position
+        )
+
+        self.velocity = (
+            velocity_x,
+            velocity_y
+        )
+
+        self.speed = math.hypot(
+            velocity_x,
+            velocity_y
+        )
+
+        # ----------------------------------------------------
+        # Predict future position
+        # ----------------------------------------------------
+
+        predicted_x = (
+            current_position[0]
+            +
+            velocity_x
+            *
+            self.prediction_frames
+        )
+
+        predicted_y = (
+            current_position[1]
+            +
+            velocity_y
+            *
+            self.prediction_frames
+        )
+
+        # ----------------------------------------------------
+        # Keep prediction inside frame.
+        # ----------------------------------------------------
+
+        predicted_x = max(
+            0.0,
+            min(
+                float(
+                    self.frame_width
+                ),
+                predicted_x
+            )
+        )
+
+        predicted_y = max(
+            0.0,
+            min(
+                float(
+                    self.frame_height
+                ),
+                predicted_y
+            )
+        )
+
+        # ----------------------------------------------------
+        # Smooth prediction to reduce jitter.
+        # ----------------------------------------------------
+
+        self.predicted_position = (
+            self.predicted_position[0]
+            +
+            (
+                predicted_x
+                -
+                self.predicted_position[0]
+            )
+            *
+            self.smoothing,
+
+            self.predicted_position[1]
+            +
+            (
+                predicted_y
+                -
+                self.predicted_position[1]
+            )
+            *
+            self.smoothing
+        )
+
+        # ====================================================
+        # VIRTUAL PTZ DIRECTION
+        # ====================================================
+
+        frame_center_x = (
+            self.frame_width / 2.0
+        )
+
+        frame_center_y = (
+            self.frame_height / 2.0
+        )
+
+        error_x = (
+            self.predicted_position[0]
+            -
+            frame_center_x
+        )
+
+        error_y = (
+            self.predicted_position[1]
+            -
+            frame_center_y
+        )
+
+        horizontal_threshold = (
+            self.frame_width * 0.08
+        )
+
+        vertical_threshold = (
+            self.frame_height * 0.08
+        )
+
+        # ----------------------------------------------------
+        # Pan
+        # ----------------------------------------------------
+
+        if (
+            error_x
+            >
+            horizontal_threshold
+        ):
+
+            pan_direction = "RIGHT"
+
+        elif (
+            error_x
+            <
+            -horizontal_threshold
+        ):
+
+            pan_direction = "LEFT"
+
+        else:
+
+            pan_direction = "CENTER"
+
+        # ----------------------------------------------------
+        # Tilt
+        # ----------------------------------------------------
+
+        if (
+            error_y
+            >
+            vertical_threshold
+        ):
+
+            tilt_direction = "DOWN"
+
+        elif (
+            error_y
+            <
+            -vertical_threshold
+        ):
+
+            tilt_direction = "UP"
+
+        else:
+
+            tilt_direction = "CENTER"
+
+        return {
+            "person_id": target.id,
+
+            "current_position":
+                current_position,
+
+            "predicted_position":
+                self.predicted_position,
+
+            "velocity":
+                self.velocity,
+
+            "speed":
+                self.speed,
+
+            "pan_direction":
+                pan_direction,
+
+            "tilt_direction":
+                tilt_direction,
+
+            "error_x":
+                error_x,
+
+            "error_y":
+                error_y,
+        }
+
+    # ========================================================
+    # RESET
+    # ========================================================
+
+    def reset(self):
+
+        self.target_id = None
+
+        self.previous_position = None
+
+        self.predicted_position = (
+            self.frame_width / 2.0,
+            self.frame_height / 2.0
+        )
+
+        self.velocity = (
+            0.0,
+            0.0
+        )
+
+        self.speed = 0.0
+
+
+# ============================================================
 # PATHS
 # ============================================================
 
@@ -35,10 +390,18 @@ EVENT_LOG = LOG_DIR / "events.csv"
 # ============================================================
 
 def cfg(name, default):
-    return getattr(config, name, default)
+
+    return getattr(
+        config,
+        name,
+        default
+    )
 
 
-CAMERA_INDEX = cfg("CAMERA_INDEX", 0)
+CAMERA_INDEX = cfg(
+    "CAMERA_INDEX",
+    0
+)
 
 FRAME_WIDTH = cfg(
     "FRAME_WIDTH",
@@ -98,6 +461,7 @@ ZONE_DWELL_SECONDS = cfg(
 MIN_LOWER_BODY_POINTS = 4
 
 SITTING_KNEE_ANGLE = 155
+
 STANDING_KNEE_ANGLE = 168
 
 UPRIGHT_TORSO_ANGLE = 32
@@ -168,40 +532,20 @@ def ensure_dirs():
         exist_ok=True
     )
 
-    (
-        CAPTURE_DIR / "fall"
-    ).mkdir(
-        parents=True,
-        exist_ok=True
-    )
+    for folder in (
+        "fall",
+        "limited_view",
+        "zone",
+        "posture",
+        "manual"
+    ):
 
-    (
-        CAPTURE_DIR / "limited_view"
-    ).mkdir(
-        parents=True,
-        exist_ok=True
-    )
-
-    (
-        CAPTURE_DIR / "zone"
-    ).mkdir(
-        parents=True,
-        exist_ok=True
-    )
-
-    (
-        CAPTURE_DIR / "posture"
-    ).mkdir(
-        parents=True,
-        exist_ok=True
-    )
-
-    (
-        CAPTURE_DIR / "manual"
-    ).mkdir(
-        parents=True,
-        exist_ok=True
-    )
+        (
+            CAPTURE_DIR / folder
+        ).mkdir(
+            parents=True,
+            exist_ok=True
+        )
 
     if not EVENT_LOG.exists():
 
@@ -270,13 +614,15 @@ def capture_and_log(
 
     try:
 
-        event_id, image_path = capture_event(
-            frame=frame,
-            person_id=track_id,
-            event_type=event_type,
-            activity=activity,
-            details=details,
-            category=category
+        event_id, image_path = (
+            capture_event(
+                frame=frame,
+                person_id=track_id,
+                event_type=event_type,
+                activity=activity,
+                details=details,
+                category=category
+            )
         )
 
         log_event(
@@ -624,15 +970,14 @@ def check_knees_visible(
         )
     )
 
-    # Both knees clipped at bottom.
     if (
         knees_at_bottom
         and
         not ankles_valid
     ):
+
         return False
 
-    # Both ankles clipped.
     if ankles_at_bottom:
         return False
 
@@ -775,22 +1120,15 @@ def get_body_features(
     features = {
         "valid": False,
         "lower_body_visible": False,
-
         "torso_angle": None,
-
         "knee_angle": None,
         "left_knee_angle": None,
         "right_knee_angle": None,
-
         "hip_angle": None,
-
         "left_thigh_angle": None,
         "right_thigh_angle": None,
-
         "body_quality": 0.0,
-
         "leg_torso_ratio": 0.0,
-
         "shoulder_hip_ratio": 0.0
     }
 
@@ -835,10 +1173,6 @@ def get_body_features(
         points[RIGHT_HIP]
     )
 
-    # --------------------------------------------------------
-    # Torso
-    # --------------------------------------------------------
-
     torso = torso_angle(
         shoulder,
         hip
@@ -847,10 +1181,6 @@ def get_body_features(
     features[
         "torso_angle"
     ] = torso
-
-    # --------------------------------------------------------
-    # Knee angles
-    # --------------------------------------------------------
 
     left_knee_angle = angle(
         points[LEFT_HIP],
@@ -891,10 +1221,6 @@ def get_body_features(
             len(knee_angles)
         )
 
-    # --------------------------------------------------------
-    # Hip angles
-    # --------------------------------------------------------
-
     left_hip_angle = angle(
         points[LEFT_SHOULDER],
         points[LEFT_HIP],
@@ -925,10 +1251,6 @@ def get_body_features(
             /
             len(hip_angles)
         )
-
-    # --------------------------------------------------------
-    # Thigh angles
-    # --------------------------------------------------------
 
     if (
         landmark_valid(
@@ -996,10 +1318,6 @@ def get_body_features(
             )
         )
 
-    # --------------------------------------------------------
-    # Lower-body visibility
-    # --------------------------------------------------------
-
     features[
         "lower_body_visible"
     ] = lower_body_visibility(
@@ -1007,10 +1325,6 @@ def get_body_features(
         frame_width,
         frame_height
     )
-
-    # --------------------------------------------------------
-    # Body quality
-    # --------------------------------------------------------
 
     upper_points = [
         points[LEFT_SHOULDER],
@@ -1043,10 +1357,6 @@ def get_body_features(
         +
         valid_lower
     ) / 8.0
-
-    # --------------------------------------------------------
-    # Leg / torso ratio
-    # --------------------------------------------------------
 
     leg_lengths = []
 
@@ -1202,10 +1512,6 @@ def classify_posture(
             "knee landmarks unavailable"
         )
 
-    # --------------------------------------------------------
-    # FALLING
-    # --------------------------------------------------------
-
     if torso is not None and (
         torso >= FALL_TORSO_ANGLE
     ):
@@ -1236,10 +1542,6 @@ def classify_posture(
             "horizontal torso orientation"
         )
 
-    # --------------------------------------------------------
-    # SITTING
-    # --------------------------------------------------------
-
     sitting_score = 0.0
 
     if knee_angle < (
@@ -1264,9 +1566,7 @@ def classify_posture(
 
             sitting_score += 0.15
 
-    if (
-        leg_torso_ratio > 0
-    ):
+    if leg_torso_ratio > 0:
 
         if leg_torso_ratio < 0.85:
 
@@ -1281,10 +1581,6 @@ def classify_posture(
         +
         0.15 * body_quality
     )
-
-    # --------------------------------------------------------
-    # STANDING
-    # --------------------------------------------------------
 
     standing_score = 0.0
 
@@ -1315,10 +1611,6 @@ def classify_posture(
         +
         0.15 * body_quality
     )
-
-    # --------------------------------------------------------
-    # WALKING
-    # --------------------------------------------------------
 
     movement = getattr(
         track,
@@ -1438,10 +1730,6 @@ def stabilize_posture(
             maxlen=POSTURE_HISTORY_SIZE
         )
 
-    # --------------------------------------------------------
-    # Limited view is immediate.
-    # --------------------------------------------------------
-
     if (
         detected_state
         ==
@@ -1455,10 +1743,6 @@ def stabilize_posture(
 
         return "limited_view"
 
-    # --------------------------------------------------------
-    # Fall is responsive.
-    # --------------------------------------------------------
-
     if (
         detected_state
         ==
@@ -1469,10 +1753,6 @@ def stabilize_posture(
         track.candidate_started = None
 
         return "falling"
-
-    # --------------------------------------------------------
-    # Uncertain
-    # --------------------------------------------------------
 
     if (
         detected_state
@@ -1490,10 +1770,6 @@ def stabilize_posture(
 
         return "uncertain"
 
-    # --------------------------------------------------------
-    # Same state
-    # --------------------------------------------------------
-
     if (
         detected_state
         ==
@@ -1506,10 +1782,6 @@ def stabilize_posture(
         track.posture_history.clear()
 
         return track.state
-
-    # --------------------------------------------------------
-    # Candidate state
-    # --------------------------------------------------------
 
     if (
         track.candidate_state
@@ -1537,10 +1809,6 @@ def stabilize_posture(
         detected_state
     )
 
-    # --------------------------------------------------------
-    # Frame consistency
-    # --------------------------------------------------------
-
     if len(
         track.posture_history
     ) < POSTURE_CONFIRM_FRAMES:
@@ -1564,10 +1832,6 @@ def stabilize_posture(
 
         return track.state
 
-    # --------------------------------------------------------
-    # Time consistency
-    # --------------------------------------------------------
-
     if (
         track.candidate_started
         is not None
@@ -1583,6 +1847,7 @@ def stabilize_posture(
 
         track.candidate_state = None
         track.candidate_started = None
+
         track.posture_history.clear()
 
         return detected_state
@@ -1654,10 +1919,6 @@ def process_fall(
         track.previous_hip_y = (
             current_hip_y
         )
-
-    # --------------------------------------------------------
-    # Strong fall signal
-    # --------------------------------------------------------
 
     rapid_drop = (
         hip_drop
@@ -1807,6 +2068,7 @@ def draw_skeleton(
             or
             b >= len(points)
         ):
+
             continue
 
         if not (
@@ -1818,6 +2080,7 @@ def draw_skeleton(
                 points[b]
             )
         ):
+
             continue
 
         cv2.line(
@@ -1898,11 +2161,6 @@ def draw_objects(
             )
         )
 
-        # ----------------------------------------------------
-        # Do NOT use YOLO for people.
-        # Existing MediaPipe + tracker handles people.
-        # ----------------------------------------------------
-
         if (
             class_name.lower()
             ==
@@ -1929,10 +2187,6 @@ def draw_objects(
             int,
             obj["center"]
         )
-
-        # ----------------------------------------------------
-        # Only objects inside monitoring zone.
-        # ----------------------------------------------------
 
         if not (
             zone_x1 <= cx <= zone_x2
@@ -2105,7 +2359,7 @@ def main():
     )
 
     # --------------------------------------------------------
-    # NEW: General object detector
+    # YOLO object detector
     # --------------------------------------------------------
 
     print(
@@ -2120,6 +2374,23 @@ def main():
 
     print(
         "[INFO] YOLO object detector ready."
+    )
+
+    # --------------------------------------------------------
+    # Predictive subject tracker
+    # --------------------------------------------------------
+
+    predictive_tracker = (
+        PredictiveSubjectTracker(
+            frame_width=FRAME_WIDTH,
+            frame_height=FRAME_HEIGHT,
+            prediction_frames=8,
+            smoothing=0.20
+        )
+    )
+
+    print(
+        "[INFO] Predictive subject tracking ready."
     )
 
     # --------------------------------------------------------
@@ -2202,6 +2473,16 @@ def main():
             tracks = tracker.update(
                 detections,
                 now
+            )
+
+            # =================================================
+            # PREDICTIVE SUBJECT TRACKING
+            # =================================================
+
+            prediction = (
+                predictive_tracker.update(
+                    tracks
+                )
             )
 
             # =================================================
@@ -2370,10 +2651,6 @@ def main():
                         False
                     )
 
-                    # ------------------------------------------------
-                    # Normal posture event
-                    # ------------------------------------------------
-
                     if state in (
                         "sitting",
                         "standing",
@@ -2426,10 +2703,6 @@ def main():
                                 f"STATE_{state}",
                                 now
                             )
-
-                    # ------------------------------------------------
-                    # Limited view event
-                    # ------------------------------------------------
 
                     elif (
                         state
@@ -2572,10 +2845,6 @@ def main():
                     h
                 )
 
-                # ------------------------------------------------
-                # First initialization
-                # ------------------------------------------------
-
                 if not track.zone_initialized:
 
                     track.was_in_zone = (
@@ -2597,10 +2866,6 @@ def main():
                         track.zone_started = (
                             None
                         )
-
-                # ------------------------------------------------
-                # ENTRY
-                # ------------------------------------------------
 
                 elif (
                     in_zone
@@ -2648,10 +2913,6 @@ def main():
                         f"{track.id} ENTERED "
                         f"monitoring zone"
                     )
-
-                # ------------------------------------------------
-                # EXIT
-                # ------------------------------------------------
 
                 elif (
                     not in_zone
@@ -2715,17 +2976,9 @@ def main():
                         False
                     )
 
-                # ------------------------------------------------
-                # Update previous zone state
-                # ------------------------------------------------
-
                 track.was_in_zone = (
                     in_zone
                 )
-
-                # ------------------------------------------------
-                # Zone timer
-                # ------------------------------------------------
 
                 zone_elapsed = 0
 
@@ -2745,10 +2998,6 @@ def main():
                         -
                         track.zone_started
                     )
-
-                    # ------------------------------------------------
-                    # Zone dwell event
-                    # ------------------------------------------------
 
                     if (
                         zone_elapsed
@@ -2967,6 +3216,181 @@ def main():
                     )
 
             # =================================================
+            # PREDICTIVE TRACKING DISPLAY
+            # =================================================
+
+            if prediction is not None:
+
+                current_x, current_y = (
+                    prediction[
+                        "current_position"
+                    ]
+                )
+
+                predicted_x, predicted_y = (
+                    prediction[
+                        "predicted_position"
+                    ]
+                )
+
+                # ------------------------------------------------
+                # Current position
+                # ------------------------------------------------
+
+                cv2.circle(
+                    frame,
+                    (
+                        int(current_x),
+                        int(current_y)
+                    ),
+                    6,
+                    (255, 255, 255),
+                    -1
+                )
+
+                # ------------------------------------------------
+                # Predicted future position
+                # ------------------------------------------------
+
+                cv2.circle(
+                    frame,
+                    (
+                        int(predicted_x),
+                        int(predicted_y)
+                    ),
+                    9,
+                    (0, 255, 255),
+                    2
+                )
+
+                # ------------------------------------------------
+                # Current → predicted trajectory
+                # ------------------------------------------------
+
+                cv2.line(
+                    frame,
+                    (
+                        int(current_x),
+                        int(current_y)
+                    ),
+                    (
+                        int(predicted_x),
+                        int(predicted_y)
+                    ),
+                    (0, 255, 255),
+                    2
+                )
+
+                # ------------------------------------------------
+                # Frame center / virtual PTZ target
+                # ------------------------------------------------
+
+                frame_center_x = int(
+                    w / 2
+                )
+
+                frame_center_y = int(
+                    h / 2
+                )
+
+                cv2.circle(
+                    frame,
+                    (
+                        frame_center_x,
+                        frame_center_y
+                    ),
+                    8,
+                    (255, 255, 255),
+                    2
+                )
+
+                # ------------------------------------------------
+                # Prediction information
+                # ------------------------------------------------
+
+                cv2.putText(
+                    frame,
+                    (
+                        f"Predictive Track | "
+                        f"ID {prediction['person_id']}"
+                    ),
+                    (
+                        20,
+                        165
+                    ),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.55,
+                    (0, 255, 255),
+                    2,
+                    cv2.LINE_AA
+                )
+
+                cv2.putText(
+                    frame,
+                    (
+                        f"PTZ: "
+                        f"{prediction['pan_direction']} / "
+                        f"{prediction['tilt_direction']}"
+                    ),
+                    (
+                        20,
+                        190
+                    ),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.50,
+                    (0, 255, 255),
+                    2,
+                    cv2.LINE_AA
+                )
+
+                cv2.putText(
+                    frame,
+                    (
+                        f"Speed: "
+                        f"{prediction['speed']:.1f} px/frame"
+                    ),
+                    (
+                        20,
+                        215
+                    ),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.50,
+                    (0, 255, 255),
+                    2,
+                    cv2.LINE_AA
+                )
+
+                cv2.putText(
+                    frame,
+                    "PREDICTED POSITION",
+                    (
+                        int(predicted_x) + 10,
+                        int(predicted_y)
+                    ),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.45,
+                    (0, 255, 255),
+                    2,
+                    cv2.LINE_AA
+                )
+
+            else:
+
+                cv2.putText(
+                    frame,
+                    "Predictive Track: NO TARGET",
+                    (
+                        20,
+                        165
+                    ),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.55,
+                    (180, 180, 180),
+                    2,
+                    cv2.LINE_AA
+                )
+
+            # =================================================
             # OBJECT COUNT
             # =================================================
 
@@ -2979,7 +3403,7 @@ def main():
                 f"Detected objects: {object_count}",
                 (
                     20,
-                    135
+                    240
                 ),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.55,
