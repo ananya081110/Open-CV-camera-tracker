@@ -1029,6 +1029,10 @@ with st.sidebar:
         f"**Role:** {CURRENT_ROLE.upper()}"
     )
 
+    st.markdown(
+        "🧠 **AI Engine:** DeepCamera / YOLO26"
+    )
+
     if IS_ADMIN:
         st.caption("Administrative access enabled.")
     else:
@@ -1103,9 +1107,9 @@ with st.sidebar:
     <b>Data source</b><br>
     SQLite event database<br><br>
 
-    <b>Pipeline</b><br>
-    Pose Detection → Tracking → Classification →
-    Event Logging → Analytics → Security
+    <b>AI Pipeline</b><br>
+    DeepCamera / YOLO26 → Pose Detection → Tracking →
+    Classification → Event Logging → Analytics → Security
 </div>
 """,
         unsafe_allow_html=True,
@@ -1190,6 +1194,7 @@ with header_right:
         '<div class="status-online">● Monitoring System Online</div>',
         unsafe_allow_html=True,
     )
+    st.caption("DeepCamera AI detection layer • YOLO26")
 
 
 # ============================================================

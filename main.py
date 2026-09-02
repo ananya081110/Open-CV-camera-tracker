@@ -15,6 +15,8 @@ from download_model import MODEL_PATH
 from event_manager import capture_event
 from tracker import CentroidTracker
 from object_detector import ObjectDetector
+from deepcamera_adapter import DeepCameraDetector
+from security_alerts import SecurityAlertManager
 
 
 # ============================================================
@@ -49,16 +51,10 @@ class PredictiveSubjectTracker:
         self.frame_width = frame_width
         self.frame_height = frame_height
 
-        self.prediction_frames = (
-            prediction_frames
-        )
-
-        self.smoothing = (
-            smoothing
-        )
+        self.prediction_frames = prediction_frames
+        self.smoothing = smoothing
 
         self.target_id = None
-
         self.previous_position = None
 
         self.predicted_position = (
@@ -86,59 +82,31 @@ class PredictiveSubjectTracker:
         ]
 
         if not visible_tracks:
-
             return None
 
         target = None
-
-        # ----------------------------------------------------
-        # Keep tracking the same person if visible.
-        # ----------------------------------------------------
 
         if self.target_id is not None:
 
             for track in visible_tracks:
 
-                if (
-                    track.id
-                    ==
-                    self.target_id
-                ):
+                if track.id == self.target_id:
 
                     target = track
                     break
 
-        # ----------------------------------------------------
-        # If target disappeared, select a visible person.
-        # ----------------------------------------------------
-
         if target is None:
 
             target = visible_tracks[0]
-
-            self.target_id = (
-                target.id
-            )
-
+            self.target_id = target.id
             self.previous_position = None
-
-        # ----------------------------------------------------
-        # Current position
-        # ----------------------------------------------------
 
         current_position = (
             float(target.center[0]),
             float(target.center[1])
         )
 
-        # ----------------------------------------------------
-        # Calculate velocity
-        # ----------------------------------------------------
-
-        if (
-            self.previous_position
-            is None
-        ):
+        if self.previous_position is None:
 
             velocity_x = 0.0
             velocity_y = 0.0
@@ -157,9 +125,7 @@ class PredictiveSubjectTracker:
                 self.previous_position[1]
             )
 
-        self.previous_position = (
-            current_position
-        )
+        self.previous_position = current_position
 
         self.velocity = (
             velocity_x,
@@ -170,10 +136,6 @@ class PredictiveSubjectTracker:
             velocity_x,
             velocity_y
         )
-
-        # ----------------------------------------------------
-        # Predict future position
-        # ----------------------------------------------------
 
         predicted_x = (
             current_position[0]
@@ -191,16 +153,10 @@ class PredictiveSubjectTracker:
             self.prediction_frames
         )
 
-        # ----------------------------------------------------
-        # Keep prediction inside frame.
-        # ----------------------------------------------------
-
         predicted_x = max(
             0.0,
             min(
-                float(
-                    self.frame_width
-                ),
+                float(self.frame_width),
                 predicted_x
             )
         )
@@ -208,16 +164,10 @@ class PredictiveSubjectTracker:
         predicted_y = max(
             0.0,
             min(
-                float(
-                    self.frame_height
-                ),
+                float(self.frame_height),
                 predicted_y
             )
         )
-
-        # ----------------------------------------------------
-        # Smooth prediction to reduce jitter.
-        # ----------------------------------------------------
 
         self.predicted_position = (
             self.predicted_position[0]
@@ -240,10 +190,6 @@ class PredictiveSubjectTracker:
             *
             self.smoothing
         )
-
-        # ====================================================
-        # VIRTUAL PTZ DIRECTION
-        # ====================================================
 
         frame_center_x = (
             self.frame_width / 2.0
@@ -273,80 +219,34 @@ class PredictiveSubjectTracker:
             self.frame_height * 0.08
         )
 
-        # ----------------------------------------------------
-        # Pan
-        # ----------------------------------------------------
-
-        if (
-            error_x
-            >
-            horizontal_threshold
-        ):
-
+        if error_x > horizontal_threshold:
             pan_direction = "RIGHT"
 
-        elif (
-            error_x
-            <
-            -horizontal_threshold
-        ):
-
+        elif error_x < -horizontal_threshold:
             pan_direction = "LEFT"
 
         else:
-
             pan_direction = "CENTER"
 
-        # ----------------------------------------------------
-        # Tilt
-        # ----------------------------------------------------
-
-        if (
-            error_y
-            >
-            vertical_threshold
-        ):
-
+        if error_y > vertical_threshold:
             tilt_direction = "DOWN"
 
-        elif (
-            error_y
-            <
-            -vertical_threshold
-        ):
-
+        elif error_y < -vertical_threshold:
             tilt_direction = "UP"
 
         else:
-
             tilt_direction = "CENTER"
 
         return {
             "person_id": target.id,
-
-            "current_position":
-                current_position,
-
-            "predicted_position":
-                self.predicted_position,
-
-            "velocity":
-                self.velocity,
-
-            "speed":
-                self.speed,
-
-            "pan_direction":
-                pan_direction,
-
-            "tilt_direction":
-                tilt_direction,
-
-            "error_x":
-                error_x,
-
-            "error_y":
-                error_y,
+            "current_position": current_position,
+            "predicted_position": self.predicted_position,
+            "velocity": self.velocity,
+            "speed": self.speed,
+            "pan_direction": pan_direction,
+            "tilt_direction": tilt_direction,
+            "error_x": error_x,
+            "error_y": error_y,
         }
 
     # ========================================================
@@ -1437,7 +1337,7 @@ def get_body_features(
 
 
 # ============================================================
-# CONFIDENCE HELPERS
+# CONFIDENCE
 # ============================================================
 
 def clamp(
@@ -2359,22 +2259,78 @@ def main():
     )
 
     # --------------------------------------------------------
-    # YOLO object detector
+    # DEEPCAMERA OBJECT DETECTOR
+    # --------------------------------------------------------
+    # DeepCamera's current detection skill uses YOLO 2026/YOLO26
+    # and communicates detections as JSON objects.  We keep the
+    # existing detector as a safety fallback so none of the current
+    # monitoring features stop working if the YOLO26 model is not
+    # available locally.
     # --------------------------------------------------------
 
     print(
-        "[INFO] Loading YOLO object detector..."
+        "[INFO] Loading DeepCamera object detector..."
     )
 
-    object_detector = ObjectDetector(
+    legacy_object_detector = ObjectDetector(
         model_path="yolo11n.pt",
         confidence=0.50,
         iou=0.45
     )
 
-    print(
-        "[INFO] YOLO object detector ready."
+    object_detector = DeepCameraDetector(
+        model_path=cfg(
+            "DEEPCAMERA_MODEL_PATH",
+            "yolo26n.pt"
+        ),
+        confidence=cfg(
+            "DEEPCAMERA_CONFIDENCE",
+            0.50
+        ),
+        iou=cfg(
+            "DEEPCAMERA_IOU",
+            0.45
+        ),
+        fallback=legacy_object_detector
     )
+
+    print(
+        "[INFO] DeepCamera object detector ready."
+    )
+
+    # --------------------------------------------------------
+    # ADMIN SECURITY MANAGER
+    # --------------------------------------------------------
+
+    try:
+
+        security_manager = (
+            SecurityAlertManager(
+                cooldown_seconds=30
+            )
+        )
+
+        security_enabled = True
+
+        print(
+            "[INFO] Admin security "
+            "alert manager ready."
+        )
+
+    except Exception as exc:
+
+        security_manager = None
+        security_enabled = False
+
+        print(
+            "[WARNING] Security alert "
+            f"manager unavailable: {exc}"
+        )
+
+        print(
+            "[WARNING] Existing camera "
+            "features will continue running."
+        )
 
     # --------------------------------------------------------
     # Predictive subject tracker
@@ -2390,7 +2346,8 @@ def main():
     )
 
     print(
-        "[INFO] Predictive subject tracking ready."
+        "[INFO] Predictive subject "
+        "tracking ready."
     )
 
     # --------------------------------------------------------
@@ -2433,7 +2390,8 @@ def main():
             if not ok:
 
                 print(
-                    "[ERROR] Failed to read camera frame."
+                    "[ERROR] Failed to read "
+                    "camera frame."
                 )
 
                 break
@@ -2486,7 +2444,7 @@ def main():
             )
 
             # =================================================
-            # GENERAL OBJECT DETECTION
+            # YOLO OBJECT DETECTION
             # =================================================
 
             object_detections = (
@@ -2504,6 +2462,79 @@ def main():
                 frame,
                 visible_objects
             )
+
+            # =================================================
+            # ADMIN SECURITY - THREAT DETECTION
+            # =================================================
+            #
+            # IMPORTANT:
+            # Use ALL YOLO detections here, not only
+            # visible_objects, so a threat anywhere in the
+            # camera frame can be escalated.
+            #
+            # The security manager itself decides whether
+            # the detected class is a configured threat.
+            # =================================================
+
+            if (
+                security_enabled
+                and
+                security_manager is not None
+            ):
+
+                security_objects = []
+
+                for obj in (
+                    object_detections
+                    or []
+                ):
+
+                    label = str(
+                        obj.get(
+                            "class_name",
+                            ""
+                        )
+                    ).strip()
+
+                    if not label:
+                        continue
+
+                    if (
+                        label.lower()
+                        ==
+                        "person"
+                    ):
+                        continue
+
+                    security_objects.append(
+                        {
+                            "label": label,
+                            "confidence": float(
+                                obj.get(
+                                    "confidence",
+                                    0.0
+                                )
+                            )
+                        }
+                    )
+
+                if security_objects:
+
+                    try:
+
+                        security_manager.evaluate_objects(
+                            frame=frame,
+                            person_id=0,
+                            detected_objects=security_objects
+                        )
+
+                    except Exception as exc:
+
+                        print(
+                            "[WARNING] Threat "
+                            "security check failed: "
+                            f"{exc}"
+                        )
 
             # =================================================
             # MONITORING ZONE
@@ -2527,9 +2558,9 @@ def main():
                 if len(points) < 33:
                     continue
 
-                # ------------------------------------------------
-                # Body features
-                # ------------------------------------------------
+                # =================================================
+                # BODY FEATURES
+                # =================================================
 
                 features = get_body_features(
                     points,
@@ -2537,9 +2568,9 @@ def main():
                     h
                 )
 
-                # ------------------------------------------------
-                # Movement
-                # ------------------------------------------------
+                # =================================================
+                # MOVEMENT
+                # =================================================
 
                 previous_center = getattr(
                     track,
@@ -2596,7 +2627,38 @@ def main():
                     h
                 )
 
+                # =================================================
+                # ADMIN SECURITY - CONFIRMED FALL
+                # =================================================
+
                 if fall_confirmed:
+
+                    if (
+                        security_enabled
+                        and
+                        security_manager is not None
+                    ):
+
+                        try:
+
+                            security_manager.evaluate_fall(
+                                frame=frame,
+                                person_id=track.id,
+                                details=(
+                                    "Fall confirmed by "
+                                    "the existing camera "
+                                    "fall-detection "
+                                    "pipeline."
+                                )
+                            )
+
+                        except Exception as exc:
+
+                            print(
+                                "[WARNING] Security "
+                                "fall alert failed: "
+                                f"{exc}"
+                            )
 
                     detected_state = (
                         "falling"
@@ -2908,6 +2970,37 @@ def main():
                             now
                         )
 
+                    # ---------------------------------------------
+                    # ADMIN SECURITY - ZONE ENTRY
+                    # ---------------------------------------------
+
+                    if (
+                        security_enabled
+                        and
+                        security_manager is not None
+                    ):
+
+                        try:
+
+                            security_manager.evaluate_restricted_zone(
+                                frame=frame,
+                                person_id=track.id,
+                                details=(
+                                    "Person entered "
+                                    "the configured "
+                                    "monitoring/security "
+                                    "zone."
+                                )
+                            )
+
+                        except Exception as exc:
+
+                            print(
+                                "[WARNING] Security "
+                                "zone alert failed: "
+                                f"{exc}"
+                            )
+
                     print(
                         f"[ZONE] Person "
                         f"{track.id} ENTERED "
@@ -3089,10 +3182,6 @@ def main():
                         255
                     )
 
-                # ------------------------------------------------
-                # Confidence
-                # ------------------------------------------------
-
                 if state in (
                     "limited_view",
                     "uncertain"
@@ -3105,10 +3194,6 @@ def main():
                     confidence_text = (
                         f"{confidence * 100:.0f}%"
                     )
-
-                # ------------------------------------------------
-                # Label
-                # ------------------------------------------------
 
                 label = (
                     f"ID {track.id} | "
@@ -3233,10 +3318,6 @@ def main():
                     ]
                 )
 
-                # ------------------------------------------------
-                # Current position
-                # ------------------------------------------------
-
                 cv2.circle(
                     frame,
                     (
@@ -3248,10 +3329,6 @@ def main():
                     -1
                 )
 
-                # ------------------------------------------------
-                # Predicted future position
-                # ------------------------------------------------
-
                 cv2.circle(
                     frame,
                     (
@@ -3262,10 +3339,6 @@ def main():
                     (0, 255, 255),
                     2
                 )
-
-                # ------------------------------------------------
-                # Current → predicted trajectory
-                # ------------------------------------------------
 
                 cv2.line(
                     frame,
@@ -3280,10 +3353,6 @@ def main():
                     (0, 255, 255),
                     2
                 )
-
-                # ------------------------------------------------
-                # Frame center / virtual PTZ target
-                # ------------------------------------------------
 
                 frame_center_x = int(
                     w / 2
@@ -3303,10 +3372,6 @@ def main():
                     (255, 255, 255),
                     2
                 )
-
-                # ------------------------------------------------
-                # Prediction information
-                # ------------------------------------------------
 
                 cv2.putText(
                     frame,
@@ -3416,6 +3481,47 @@ def main():
             )
 
             # =================================================
+            # SECURITY STATUS
+            # =================================================
+
+            if security_enabled:
+
+                security_status = (
+                    "ADMIN SECURITY: ACTIVE"
+                )
+
+                security_color = (
+                    0,
+                    255,
+                    0
+                )
+
+            else:
+
+                security_status = (
+                    "ADMIN SECURITY: OFFLINE"
+                )
+
+                security_color = (
+                    0,
+                    165,
+                    255
+                )
+
+            cv2.putText(
+                frame,
+                security_status,
+                (
+                    20,
+                    265
+                ),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.52,
+                security_color,
+                2
+            )
+
+            # =================================================
             # CONTROLS
             # =================================================
 
@@ -3506,6 +3612,11 @@ def main():
         cap.release()
 
         detector.close()
+
+        try:
+            object_detector.close()
+        except Exception:
+            pass
 
         cv2.destroyAllWindows()
 

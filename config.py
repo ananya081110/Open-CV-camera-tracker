@@ -99,3 +99,15 @@ ZONE = (
 MAX_TRACK_DISTANCE_PX = 140
 
 MAX_MISSED_FRAMES = 20
+
+# ============================================================
+# DEEPCAMERA
+# ============================================================
+
+# Current DeepCamera detection skill uses YOLO 2026 / YOLO26.
+# The local integration defaults to the nano model for real-time
+# webcam inference. Set DEEPCAMERA_SKILL_CMD in the environment
+# to use an external DeepCamera JSONL skill process instead.
+DEEPCAMERA_MODEL_PATH = "yolo26n.pt"
+DEEPCAMERA_CONFIDENCE = 0.50
+DEEPCAMERA_IOU = 0.45
