@@ -32,104 +32,163 @@ st.set_page_config(
 
 
 # ============================================================
-# MODERN CYBER/OPS UI THEME (CSS)
+# SESSION STATE INITIALIZATION
 # ============================================================
 
-st.markdown(
+for key, default in {
+    "authenticated": False,
+    "username": None,
+    "role": None,
+    "theme": "Dark",
+}.items():
+    if key not in st.session_state:
+        st.session_state[key] = default
+
+
+# ============================================================
+# DYNAMIC THEME SYSTEM (CSS)
+# ============================================================
+
+is_dark = st.session_state.theme == "Dark"
+
+if is_dark:
+    theme_vars = """
+    --bg-base:        #080c16;
+    --card-bg:        rgba(14, 21, 38, 0.72);
+    --card-border:    rgba(0, 242, 254, 0.14);
+    --neon-cyan:      #00f2fe;
+    --neon-blue:      #38bdf8;
+    --neon-green:     #10b981;
+    --neon-red:       #ef4444;
+    --neon-amber:     #f59e0b;
+    --text-primary:   #f8fafc;
+    --text-muted:     #94a3b8;
+    --sidebar-bg:     linear-gradient(180deg, #070a14 0%, #0a0f1d 100%);
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --shadow-card:    0 8px 32px 0 rgba(0, 0, 0, 0.45);
+    --radial-1:       rgba(0, 242, 254, 0.08);
+    --radial-2:       rgba(56, 189, 248, 0.06);
+    --grid-line:      rgba(255, 255, 255, 0.015);
+    --tab-hover:      rgba(0, 242, 254, 0.06);
+    --tab-active:     rgba(0, 242, 254, 0.09);
+    --input-card-bg:  rgba(14, 21, 38, 0.5);
+    --status-bg:      rgba(16, 185, 129, 0.12);
+    --status-border:  rgba(16, 185, 129, 0.35);
     """
+    chart_c1 = "#00f2fe"
+    chart_c2 = "#38bdf8"
+    chart_c3 = "#10b981"
+else:
+    theme_vars = """
+    --bg-base:        #f4f6fb;
+    --card-bg:        rgba(255, 255, 255, 0.92);
+    --card-border:    rgba(15, 23, 42, 0.08);
+    --neon-cyan:      #0284c7;
+    --neon-blue:      #0369a1;
+    --neon-green:     #059669;
+    --neon-red:       #dc2626;
+    --neon-amber:     #d97706;
+    --text-primary:   #0f172a;
+    --text-muted:     #64748b;
+    --sidebar-bg:     linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+    --sidebar-border: rgba(0, 0, 0, 0.08);
+    --shadow-card:    0 4px 20px 0 rgba(15, 23, 42, 0.06);
+    --radial-1:       rgba(2, 132, 199, 0.05);
+    --radial-2:       rgba(14, 165, 233, 0.04);
+    --grid-line:      rgba(15, 23, 42, 0.03);
+    --tab-hover:      rgba(2, 132, 199, 0.06);
+    --tab-active:     rgba(2, 132, 199, 0.10);
+    --input-card-bg:  rgba(255, 255, 255, 0.85);
+    --status-bg:      rgba(5, 150, 105, 0.12);
+    --status-border:  rgba(5, 150, 105, 0.35);
+    """
+    chart_c1 = "#0284c7"
+    chart_c2 = "#0369a1"
+    chart_c3 = "#059669"
+
+st.markdown(
+    f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-:root {
-    --bg-base:       #080c16;
-    --card-bg:       rgba(14, 21, 38, 0.72);
-    --card-border:   rgba(0, 242, 254, 0.14);
-    --neon-cyan:     #00f2fe;
-    --neon-blue:     #38bdf8;
-    --neon-green:    #10b981;
-    --neon-red:      #ef4444;
-    --neon-amber:    #f59e0b;
-    --text-primary:  #f8fafc;
-    --text-muted:    #94a3b8;
+:root {{
+    {theme_vars}
     --radius-lg:     16px;
     --radius-md:     12px;
     --radius-sm:     8px;
-    --shadow-card:   0 8px 32px 0 rgba(0, 0, 0, 0.45);
-}
+}}
 
-html, body, [class*="css"] {
+html, body, [class*="css"] {{
     font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
     color: var(--text-primary) !important;
-}
+}}
 
-.stApp {
+.stApp {{
     background-color: var(--bg-base);
     background-image:
-        radial-gradient(1200px 500px at 15% -5%, rgba(0, 242, 254, 0.08), transparent 60%),
-        radial-gradient(1000px 450px at 85% 105%, rgba(56, 189, 248, 0.06), transparent 60%),
-        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+        radial-gradient(1200px 500px at 15% -5%, var(--radial-1), transparent 60%),
+        radial-gradient(1000px 450px at 85% 105%, var(--radial-2), transparent 60%),
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
     background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
-}
+}}
 
-.main .block-container {
+.main .block-container {{
     max-width: 1520px;
     padding-top: 1.2rem;
     padding-bottom: 3.5rem;
-}
+}}
 
 /* Monospace treatment for data, IDs & metrics */
 div[data-testid="stDataFrame"],
 div[data-testid="stDataFrame"] *,
-[data-testid="stMetricValue"] {
+[data-testid="stMetricValue"] {{
     font-family: 'JetBrains Mono', ui-monospace, monospace !important;
-}
+}}
 
 /* ---------- Sidebar Styling ---------- */
-section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #070a14 0%, #0a0f1d 100%) !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
-}
+section[data-testid="stSidebar"] {{
+    background: var(--sidebar-bg) !important;
+    border-right: 1px solid var(--sidebar-border);
+}}
 
 section[data-testid="stSidebar"] *,
 section[data-testid="stSidebar"] label,
 section[data-testid="stSidebar"] p,
-section[data-testid="stSidebar"] span {
-    color: #94a3b8 !important;
-}
+section[data-testid="stSidebar"] span {{
+    color: var(--text-muted) !important;
+}}
 
 section[data-testid="stSidebar"] h1,
 section[data-testid="stSidebar"] h2,
-section[data-testid="stSidebar"] h3 {
-    color: #f8fafc !important;
+section[data-testid="stSidebar"] h3 {{
+    color: var(--text-primary) !important;
     font-weight: 700;
-}
+}}
 
-section[data-testid="stSidebar"] .stButton button {
+section[data-testid="stSidebar"] .stButton button {{
     width: 100%;
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(0, 242, 254, 0.25);
-    background: rgba(0, 242, 254, 0.06);
-    color: #f8fafc !important;
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+    color: var(--text-primary) !important;
     font-weight: 600;
     transition: all 0.2s ease;
-}
+}}
 
-section[data-testid="stSidebar"] .stButton button:hover {
+section[data-testid="stSidebar"] .stButton button:hover {{
     border-color: var(--neon-cyan);
-    background: rgba(0, 242, 254, 0.16);
     color: var(--neon-cyan) !important;
-    box-shadow: 0 0 16px rgba(0, 242, 254, 0.25);
-}
+}}
 
-.sidebar-brand {
+.sidebar-brand {{
     display: flex;
     align-items: center;
     gap: 12px;
     padding-bottom: 8px;
-}
+}}
 
-.sidebar-brand-mark {
+.sidebar-brand-mark {{
     width: 38px;
     height: 38px;
     border-radius: 10px;
@@ -140,36 +199,37 @@ section[data-testid="stSidebar"] .stButton button:hover {
     font-size: 19px;
     box-shadow: 0 0 14px rgba(0, 242, 254, 0.4);
     flex-shrink: 0;
-}
+}}
 
-.sidebar-brand-name {
+.sidebar-brand-name {{
     font-size: 16px;
     font-weight: 800;
-    color: #ffffff !important;
+    color: var(--text-primary) !important;
     letter-spacing: -0.02em;
     line-height: 1.15;
-}
+}}
 
-.sidebar-brand-sub {
+.sidebar-brand-sub {{
     font-size: 10px;
     color: var(--neon-cyan) !important;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     font-weight: 700;
     margin-top: 2px;
-}
+}}
 
-.sidebar-meta-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+.sidebar-meta-card {{
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: var(--radius-md);
     padding: 12px 14px;
     font-size: 11.5px;
     line-height: 1.7;
-}
+    box-shadow: var(--shadow-card);
+}}
 
 /* ---------- Header Panel ---------- */
-.app-header {
+.app-header {{
     background: var(--card-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -183,16 +243,16 @@ section[data-testid="stSidebar"] .stButton button:hover {
     gap: 18px;
     position: relative;
     overflow: hidden;
-}
+}}
 
-.app-header::before {
+.app-header::before {{
     content: "";
     position: absolute;
     top: 0; left: 0; width: 4px; height: 100%;
     background: linear-gradient(180deg, var(--neon-cyan), transparent);
-}
+}}
 
-.app-header-mark {
+.app-header-mark {{
     width: 48px;
     height: 48px;
     border-radius: 12px;
@@ -203,22 +263,22 @@ section[data-testid="stSidebar"] .stButton button:hover {
     font-size: 24px;
     flex-shrink: 0;
     box-shadow: 0 0 20px rgba(0, 242, 254, 0.45);
-}
+}}
 
-.app-title {
+.app-title {{
     font-size: 25px;
     font-weight: 800;
     letter-spacing: -0.02em;
-    color: #ffffff !important;
-}
+    color: var(--text-primary) !important;
+}}
 
-.app-subtitle {
+.app-subtitle {{
     margin-top: 3px;
     color: var(--text-muted) !important;
     font-size: 13px;
-}
+}}
 
-.section-title {
+.section-title {{
     font-size: 19px;
     font-weight: 800;
     letter-spacing: -0.01em;
@@ -226,33 +286,33 @@ section[data-testid="stSidebar"] .stButton button:hover {
     margin-bottom: 2px;
     padding-left: 12px;
     border-left: 3px solid var(--neon-cyan);
-    color: #ffffff !important;
-}
+    color: var(--text-primary) !important;
+}}
 
-.section-subtitle {
+.section-subtitle {{
     color: var(--text-muted) !important;
     font-size: 13px;
     margin-bottom: 18px;
     padding-left: 12px;
-}
+}}
 
 /* ---------- Status Beacons ---------- */
-.status-online {
+.status-online {{
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: rgba(16, 185, 129, 0.12);
+    background: var(--status-bg);
     color: var(--neon-green) !important;
-    border: 1px solid rgba(16, 185, 129, 0.35);
+    border: 1px solid var(--status-border);
     border-radius: 999px;
     padding: 6px 14px;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-}
+}}
 
-.status-online::before {
+.status-online::before {{
     content: "";
     width: 7px;
     height: 7px;
@@ -260,16 +320,16 @@ section[data-testid="stSidebar"] .stButton button:hover {
     background: var(--neon-green);
     box-shadow: 0 0 10px var(--neon-green);
     animation: pulse 1.8s infinite ease-in-out;
-}
+}}
 
-@keyframes pulse {
-    0% { transform: scale(0.9); opacity: 0.7; }
-    50% { transform: scale(1.3); opacity: 1; filter: drop-shadow(0 0 4px var(--neon-green)); }
-    100% { transform: scale(0.9); opacity: 0.7; }
-}
+@keyframes pulse {{
+    0% {{ transform: scale(0.9); opacity: 0.7; }}
+    50% {{ transform: scale(1.3); opacity: 1; filter: drop-shadow(0 0 4px var(--neon-green)); }}
+    100% {{ transform: scale(0.9); opacity: 0.7; }}
+}}
 
 /* ---------- Alert Banners ---------- */
-.alert-banner {
+.alert-banner {{
     border-radius: var(--radius-md);
     padding: 13px 18px;
     margin: 12px 0 18px 0;
@@ -279,105 +339,106 @@ section[data-testid="stSidebar"] .stButton button:hover {
     border-left-width: 4px;
     border-left-style: solid;
     backdrop-filter: blur(10px);
-}
+}}
 
-.alert-danger {
+.alert-danger {{
     background: rgba(239, 68, 68, 0.12);
     border-color: var(--neon-red);
-    color: #fca5a5 !important;
-}
+    color: var(--neon-red) !important;
+}}
 
-.alert-warning {
+.alert-warning {{
     background: rgba(245, 158, 11, 0.12);
     border-color: var(--neon-amber);
-    color: #fcd34d !important;
-}
+    color: var(--neon-amber) !important;
+}}
 
-.alert-success {
+.alert-success {{
     background: rgba(16, 185, 129, 0.12);
     border-color: var(--neon-green);
-    color: #6ee7b7 !important;
-}
+    color: var(--neon-green) !important;
+}}
 
-.alert-info {
+.alert-info {{
     background: rgba(56, 189, 248, 0.12);
     border-color: var(--neon-blue);
-    color: #7dd3fc !important;
-}
+    color: var(--neon-blue) !important;
+}}
 
 /* ---------- KPI Grid ---------- */
-.kpi-row {
+.kpi-row {{
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     gap: 12px;
     margin-bottom: 8px;
-}
+}}
 
-.kpi-card {
+.kpi-card {{
     background: var(--card-bg);
     backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--card-border);
     border-radius: var(--radius-md);
     padding: 15px 16px;
     position: relative;
     overflow: hidden;
     transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-}
+    box-shadow: var(--shadow-card);
+}}
 
-.kpi-card:hover {
+.kpi-card:hover {{
     border-color: var(--neon-cyan);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px -4px rgba(0, 242, 254, 0.25);
-}
+}}
 
-.kpi-card::before {
+.kpi-card::before {{
     content: "";
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 3px;
     background: var(--accent-bar, var(--neon-cyan));
-}
+}}
 
-.kpi-label {
+.kpi-label {{
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--text-muted) !important;
     margin-bottom: 6px;
-}
+}}
 
-.kpi-value {
+.kpi-value {{
     font-family: 'JetBrains Mono', monospace;
     font-size: 26px;
     font-weight: 700;
-    color: #ffffff !important;
+    color: var(--text-primary) !important;
     line-height: 1;
-}
+}}
 
 /* ---------- Security Incident Cards ---------- */
-.security-card {
+.security-card {{
     background: var(--card-bg);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--card-border);
     border-radius: var(--radius-md);
     padding: 18px 20px;
     margin-bottom: 12px;
     border-left-width: 5px;
     border-left-style: solid;
-}
+    box-shadow: var(--shadow-card);
+}}
 
-.security-critical { border-left-color: var(--neon-red); }
-.security-high     { border-left-color: #ea580c; }
-.security-medium   { border-left-color: var(--neon-amber); }
-.security-normal   { border-left-color: var(--neon-green); }
+.security-critical {{ border-left-color: var(--neon-red); }}
+.security-high     {{ border-left-color: #ea580c; }}
+.security-medium   {{ border-left-color: var(--neon-amber); }}
+.security-normal   {{ border-left-color: var(--neon-green); }}
 
 /* ---------- Login Shell ---------- */
-.login-shell {
+.login-shell {{
     max-width: 440px;
     margin: 5rem auto 0 auto;
-}
+}}
 
-.login-card {
+.login-card {{
     background: var(--card-bg);
     backdrop-filter: blur(20px);
     border: 1px solid var(--card-border);
@@ -387,16 +448,16 @@ section[data-testid="stSidebar"] .stButton button:hover {
     text-align: left;
     position: relative;
     overflow: hidden;
-}
+}}
 
-.login-card::before {
+.login-card::before {{
     content: "";
     position: absolute;
     top: 0; left: 0; width: 100%; height: 3px;
     background: linear-gradient(90deg, var(--neon-cyan), #0284c7);
-}
+}}
 
-.login-mark {
+.login-mark {{
     width: 46px;
     height: 46px;
     border-radius: 12px;
@@ -407,29 +468,29 @@ section[data-testid="stSidebar"] .stButton button:hover {
     font-size: 22px;
     margin-bottom: 14px;
     box-shadow: 0 0 16px rgba(0, 242, 254, 0.4);
-}
+}}
 
-.login-title {
+.login-title {{
     font-size: 22px;
     font-weight: 800;
     letter-spacing: -0.01em;
-    color: #ffffff !important;
-}
+    color: var(--text-primary) !important;
+}}
 
-.login-subtitle {
+.login-subtitle {{
     color: var(--text-muted) !important;
     margin-bottom: 6px;
     font-size: 13px;
-}
+}}
 
 /* ---------- Tabs Styling ---------- */
-div[data-baseweb="tab-list"] {
+div[data-baseweb="tab-list"] {{
     gap: 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-bottom: 1px solid var(--card-border) !important;
     background: transparent;
-}
+}}
 
-button[data-baseweb="tab"] {
+button[data-baseweb="tab"] {{
     font-weight: 600;
     font-size: 13px;
     color: var(--text-muted) !important;
@@ -437,26 +498,26 @@ button[data-baseweb="tab"] {
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     background: transparent;
     transition: all 0.2s ease;
-}
+}}
 
-button[data-baseweb="tab"]:hover {
-    background: rgba(0, 242, 254, 0.06);
+button[data-baseweb="tab"]:hover {{
+    background: var(--tab-hover);
     color: var(--neon-cyan) !important;
-}
+}}
 
-button[data-baseweb="tab"][aria-selected="true"] {
-    color: #ffffff !important;
-    background: rgba(0, 242, 254, 0.09) !important;
+button[data-baseweb="tab"][aria-selected="true"] {{
+    color: var(--text-primary) !important;
+    background: var(--tab-active) !important;
     border-bottom: 2px solid var(--neon-cyan) !important;
-}
+}}
 
-div[data-baseweb="tab-highlight"] {
+div[data-baseweb="tab-highlight"] {{
     background: var(--neon-cyan) !important;
     height: 2px !important;
-}
+}}
 
 /* ---------- Buttons & Inputs ---------- */
-.stButton > button, .stFormSubmitButton > button {
+.stButton > button, .stFormSubmitButton > button {{
     border-radius: var(--radius-sm);
     font-weight: 650;
     background: linear-gradient(135deg, #0ea5e9, #0284c7) !important;
@@ -464,31 +525,30 @@ div[data-baseweb="tab-highlight"] {
     border: none !important;
     box-shadow: 0 2px 10px rgba(14, 165, 233, 0.3);
     transition: transform 0.1s ease, filter 0.15s ease;
-}
+}}
 
-.stButton > button:hover, .stFormSubmitButton > button:hover {
+.stButton > button:hover, .stFormSubmitButton > button:hover {{
     filter: brightness(1.15);
-    box-shadow: 0 4px 16px rgba(14, 165, 233, 0.45);
-}
+}}
 
-.stButton > button:active, .stFormSubmitButton > button:active {
+.stButton > button:active, .stFormSubmitButton > button:active {{
     transform: scale(0.98);
-}
+}}
 
 /* Dataframe containers */
-div[data-testid="stDataFrame"] {
-    border: 1px solid rgba(255, 255, 255, 0.08);
+div[data-testid="stDataFrame"] {{
+    border: 1px solid var(--card-border);
     border-radius: var(--radius-md);
     overflow: hidden;
-    background: rgba(14, 21, 38, 0.5);
-}
+    background: var(--input-card-bg);
+}}
 
-hr {
-    border-color: rgba(255, 255, 255, 0.08) !important;
+hr {{
+    border-color: var(--card-border) !important;
     margin: 20px 0 !important;
-}
+}}
 
-.footer {
+.footer {{
     color: var(--text-muted) !important;
     font-size: 11px;
     letter-spacing: 0.04em;
@@ -496,11 +556,11 @@ hr {
     text-align: center;
     padding-top: 36px;
     padding-bottom: 6px;
-}
+}}
 
-@media (max-width: 900px) {
-    .kpi-row { grid-template-columns: repeat(2, 1fr); }
-}
+@media (max-width: 900px) {{
+    .kpi-row {{ grid-template-columns: repeat(2, 1fr); }}
+}}
 </style>
 """,
     unsafe_allow_html=True,
@@ -625,19 +685,6 @@ def delete_user(username):
 
 
 init_audit_db()
-
-
-# ============================================================
-# SESSION STATE
-# ============================================================
-
-for key, default in {
-    "authenticated": False,
-    "username": None,
-    "role": None,
-}.items():
-    if key not in st.session_state:
-        st.session_state[key] = default
 
 
 # ============================================================
@@ -1288,17 +1335,32 @@ with st.sidebar:
 
     st.markdown("")
 
+    # Theme Switcher Option
+    selected_theme = st.radio(
+        "Display Theme",
+        options=["Dark", "Light"],
+        horizontal=True,
+        index=0 if st.session_state.theme == "Dark" else 1,
+        help="Select between Dark Cyber Mode and High-Contrast Light Mode",
+    )
+
+    if selected_theme != st.session_state.theme:
+        st.session_state.theme = selected_theme
+        st.rerun()
+
+    st.markdown("")
+
     role_badge = "🛡️" if IS_ADMIN else "👁️"
 
     st.markdown(
         f"""
 <div class="sidebar-meta-card">
-    <span style="color:#64748b; font-weight:700; text-transform:uppercase; font-size:10px;">OPERATOR</span><br>
-    <b style="color:#ffffff;">{CURRENT_USER}</b><br><br>
-    <span style="color:#64748b; font-weight:700; text-transform:uppercase; font-size:10px;">CLEARANCE</span><br>
+    <span style="font-weight:700; text-transform:uppercase; font-size:10px;">OPERATOR</span><br>
+    <b>{CURRENT_USER}</b><br><br>
+    <span style="font-weight:700; text-transform:uppercase; font-size:10px;">CLEARANCE</span><br>
     <b style="color:var(--neon-cyan);">{role_badge} {CURRENT_ROLE.upper()}</b><br><br>
-    <span style="color:#64748b; font-weight:700; text-transform:uppercase; font-size:10px;">DETECTION ENGINE</span><br>
-    <b style="color:#e2e8f0;">🧠 DeepCamera / YOLO26</b>
+    <span style="font-weight:700; text-transform:uppercase; font-size:10px;">DETECTION ENGINE</span><br>
+    <b>🧠 DeepCamera / YOLO26</b>
 </div>
 """,
         unsafe_allow_html=True,
@@ -1377,10 +1439,10 @@ with st.sidebar:
     st.markdown(
         """
 <div class="sidebar-meta-card">
-    <span style="color:#64748b; font-weight:700; text-transform:uppercase; font-size:10px;">DATA INGESTION</span><br>
-    <span style="color:#e2e8f0;">SQLite Local Event Logs</span><br><br>
-    <span style="color:#64748b; font-weight:700; text-transform:uppercase; font-size:10px;">PIPELINE CHAIN</span><br>
-    <span style="color:#e2e8f0;">YOLO26 → Pose → Track → Classify → Security HUD</span>
+    <span style="font-weight:700; text-transform:uppercase; font-size:10px;">DATA INGESTION</span><br>
+    <span>SQLite Local Event Logs</span><br><br>
+    <span style="font-weight:700; text-transform:uppercase; font-size:10px;">PIPELINE CHAIN</span><br>
+    <span>YOLO26 → Pose → Track → Classify → Security HUD</span>
 </div>
 """,
         unsafe_allow_html=True,
@@ -1473,7 +1535,7 @@ with header_right:
         '</div>',
         unsafe_allow_html=True,
     )
-    st.caption("<div style='text-align:right; color:#94a3b8;'>DeepCamera AI layer • YOLO26</div>", unsafe_allow_html=True)
+    st.caption("<div style='text-align:right;'>DeepCamera AI layer • YOLO26</div>", unsafe_allow_html=True)
 
 
 # ============================================================
@@ -1507,10 +1569,10 @@ posture_changes = event_count(filtered, "POSTURE_CHANGE")
 kpi_items = [
     ("Total Events", total_events, "var(--neon-cyan)"),
     ("People", people, "var(--neon-blue)"),
-    ("Zone Entries", entries, "#38bdf8"),
+    ("Zone Entries", entries, "#0284c7" if not is_dark else "#38bdf8"),
     ("Limited View", limited, "var(--neon-amber)"),
     ("Fall / Alerts", falls, "var(--neon-red)" if falls else "var(--neon-green)"),
-    ("Posture Changes", posture_changes, "#a855f7"),
+    ("Posture Changes", posture_changes, "#9333ea" if not is_dark else "#a855f7"),
 ]
 
 kpi_html = '<div class="kpi-row">'
@@ -1623,7 +1685,7 @@ with overview_tab:
             st.bar_chart(
                 counts,
                 use_container_width=True,
-                color="#00f2fe",
+                color=chart_c1,
             )
 
     with right:
@@ -1645,7 +1707,7 @@ with overview_tab:
             st.bar_chart(
                 activity_counts,
                 use_container_width=True,
-                color="#38bdf8",
+                color=chart_c2,
             )
 
     st.markdown("---")
@@ -1668,7 +1730,7 @@ with overview_tab:
         st.area_chart(
             timeline_counts,
             use_container_width=True,
-            color="#10b981",
+            color=chart_c3,
         )
 
     st.markdown("---")
@@ -1934,7 +1996,7 @@ with posture_tab:
             st.bar_chart(
                 chart_data,
                 use_container_width=True,
-                color="#00f2fe",
+                color=chart_c1,
             )
 
         st.markdown("---")
@@ -2092,7 +2154,7 @@ with reports_tab:
             st.line_chart(
                 weekly,
                 use_container_width=True,
-                color="#00f2fe",
+                color=chart_c1,
             )
 
         st.markdown("---")
