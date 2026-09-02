@@ -5,6 +5,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from camera_control import load_camera_control, save_camera_control
+
 from auth import (
     authenticate,
     init_auth_db,
@@ -2814,6 +2816,132 @@ with security_tab:
             st.write(
                 "Manage your account and review the operational "
                 "security configuration."
+            )
+
+            st.markdown("---")
+            st.markdown("##### 📷 Camera Control")
+
+            st.caption(
+                "Administrator controls for camera permission and "
+                "automatic camera triggering."
+            )
+
+            camera_state = load_camera_control()
+
+            current_allowed = bool(
+                camera_state.get(
+                    "camera_allowed",
+                    True
+                )
+            )
+
+            current_auto_start = bool(
+                camera_state.get(
+                    "auto_start",
+                    True
+                )
+            )
+
+            c1, c2 = st.columns(2)
+
+            with c1:
+                allow_camera = st.toggle(
+                    "Allow Camera Access",
+                    value=current_allowed,
+                    key="admin_camera_allowed",
+                    help=(
+                        "OFF releases the webcam and prevents "
+                        "the camera process from processing frames."
+                    ),
+                )
+
+            with c2:
+                auto_trigger = st.toggle(
+                    "Automatic Camera Trigger",
+                    value=current_auto_start,
+                    key="admin_camera_auto_start",
+                    help=(
+                        "Automatically starts/reconnects the camera "
+                        "when camera access is allowed."
+                    ),
+                )
+
+            if allow_camera != current_allowed:
+                camera_state["camera_allowed"] = allow_camera
+
+                save_camera_control(
+                    camera_state,
+                    updated_by=CURRENT_USER,
+                )
+
+                write_audit(
+                    "CAMERA_ACCESS_CHANGED",
+                    username=CURRENT_USER,
+                    role=CURRENT_ROLE,
+                    target="camera_control",
+                    details=(
+                        "camera_allowed="
+                        f"{allow_camera}"
+                    ),
+                )
+
+                st.rerun()
+
+            if auto_trigger != current_auto_start:
+                camera_state["auto_start"] = auto_trigger
+
+                save_camera_control(
+                    camera_state,
+                    updated_by=CURRENT_USER,
+                )
+
+                write_audit(
+                    "CAMERA_AUTO_TRIGGER_CHANGED",
+                    username=CURRENT_USER,
+                    role=CURRENT_ROLE,
+                    target="camera_control",
+                    details=(
+                        "auto_start="
+                        f"{auto_trigger}"
+                    ),
+                )
+
+                st.rerun()
+
+            latest_camera_state = load_camera_control()
+
+            if latest_camera_state.get(
+                "camera_allowed",
+                True
+            ):
+                st.success(
+                    "🟢 Camera access is ALLOWED"
+                )
+            else:
+                st.error(
+                    "🔴 Camera access is BLOCKED"
+                )
+
+            if latest_camera_state.get(
+                "auto_start",
+                True
+            ):
+                st.info(
+                    "⚡ Automatic camera trigger is ENABLED."
+                )
+            else:
+                st.warning(
+                    "⏸️ Automatic camera trigger is DISABLED."
+                )
+
+            st.caption(
+                "Last changed by: "
+                + str(
+                    latest_camera_state.get(
+                        "updated_by",
+                        "system"
+                    )
+                )
             )
 
             st.markdown("---")

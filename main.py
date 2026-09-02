@@ -17,6 +17,7 @@ from tracker import CentroidTracker
 from object_detector import ObjectDetector
 from deepcamera_adapter import DeepCameraDetector
 from security_alerts import SecurityAlertManager
+from camera_control import load_camera_control
 
 
 # ============================================================
@@ -2351,29 +2352,78 @@ def main():
     )
 
     # --------------------------------------------------------
-    # Camera
+    # Camera access control + automatic trigger
     # --------------------------------------------------------
 
-    cap = cv2.VideoCapture(
-        CAMERA_INDEX
-    )
+    camera_state = load_camera_control()
+    cap = None
 
-    if not cap.isOpened():
+    def open_camera():
+        nonlocal cap
 
-        raise RuntimeError(
-            "Camera could not be opened. "
-            "Check macOS camera permission."
+        if cap is not None and cap.isOpened():
+            return True
+
+        camera_index = int(
+            camera_state.get(
+                "camera_index",
+                CAMERA_INDEX
+            )
         )
 
-    cap.set(
-        cv2.CAP_PROP_FRAME_WIDTH,
-        FRAME_WIDTH
-    )
+        cap = cv2.VideoCapture(
+            camera_index
+        )
 
-    cap.set(
-        cv2.CAP_PROP_FRAME_HEIGHT,
-        FRAME_HEIGHT
-    )
+        if not cap.isOpened():
+            try:
+                cap.release()
+            except Exception:
+                pass
+
+            cap = None
+
+            print(
+                "[WARNING] Camera could not be opened. "
+                "Will retry automatically."
+            )
+
+            return False
+
+        cap.set(
+            cv2.CAP_PROP_FRAME_WIDTH,
+            FRAME_WIDTH
+        )
+
+        cap.set(
+            cv2.CAP_PROP_FRAME_HEIGHT,
+            FRAME_HEIGHT
+        )
+
+        print(
+            f"[INFO] Camera started automatically "
+            f"(index={camera_index})."
+        )
+
+        return True
+
+    if (
+        camera_state.get(
+            "camera_allowed",
+            True
+        )
+        and
+        camera_state.get(
+            "auto_start",
+            True
+        )
+    ):
+        open_camera()
+    else:
+        print(
+            "[INFO] Camera is waiting for "
+            "administrator permission/trigger."
+        )
 
     timestamp_ms = 0
 
@@ -2385,16 +2435,79 @@ def main():
 
         while True:
 
+            # Read the persistent admin camera settings on every loop.
+            # This allows the dashboard to allow/block the camera
+            # without restarting this process.
+            camera_state = load_camera_control()
+
+            camera_allowed = bool(
+                camera_state.get(
+                    "camera_allowed",
+                    True
+                )
+            )
+
+            auto_start = bool(
+                camera_state.get(
+                    "auto_start",
+                    True
+                )
+            )
+
+            # ----------------------------------------------------
+            # ADMIN BLOCKED CAMERA
+            # ----------------------------------------------------
+
+            if not camera_allowed:
+
+                if cap is not None:
+
+                    try:
+                        cap.release()
+                    except Exception:
+                        pass
+
+                    cap = None
+
+                time.sleep(0.25)
+                continue
+
+            # ----------------------------------------------------
+            # AUTOMATIC CAMERA TRIGGER / RECONNECT
+            # ----------------------------------------------------
+
+            if cap is None or not cap.isOpened():
+
+                if auto_start:
+
+                    if not open_camera():
+
+                        time.sleep(1.0)
+                        continue
+
+                else:
+
+                    time.sleep(0.25)
+                    continue
+
             ok, frame = cap.read()
 
             if not ok:
 
                 print(
-                    "[ERROR] Failed to read "
-                    "camera frame."
+                    "[WARNING] Camera frame read failed. "
+                    "Reconnecting automatically..."
                 )
 
-                break
+                try:
+                    cap.release()
+                except Exception:
+                    pass
+
+                cap = None
+
+                time.sleep(0.5)
+                continue
 
             now = time.monotonic()
 
@@ -3609,7 +3722,12 @@ def main():
 
     finally:
 
-        cap.release()
+        if cap is not None:
+
+            try:
+                cap.release()
+            except Exception:
+                pass
 
         detector.close()
 
