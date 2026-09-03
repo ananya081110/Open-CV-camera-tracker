@@ -2023,37 +2023,12 @@ def draw_objects(
     object_detections
 ):
 
-    h, w = frame.shape[:2]
-
-    x1, y1, x2, y2 = cfg(
-        "ZONE",
-        (
-            0.60,
-            0.10,
-            0.98,
-            0.95
-        )
-    )
-
-    zone_x1 = int(
-        x1 * w
-    )
-
-    zone_y1 = int(
-        y1 * h
-    )
-
-    zone_x2 = int(
-        x2 * w
-    )
-
-    zone_y2 = int(
-        y2 * h
-    )
-
     visible_objects = []
 
-    for obj in object_detections:
+    for obj in (
+        object_detections
+        or []
+    ):
 
         class_name = str(
             obj.get(
@@ -2062,44 +2037,37 @@ def draw_objects(
             )
         )
 
-        if (
-            class_name.lower()
-            ==
-            "person"
-        ):
-
+        # Person boxes are already handled by the MediaPipe tracker.
+        if class_name.lower() == "person":
             continue
 
-        confidence = float(
-            obj.get(
-                "confidence",
-                0.0
+        try:
+            confidence = float(
+                obj.get(
+                    "confidence",
+                    0.0
+                )
             )
-        )
 
-        x1_obj, y1_obj, x2_obj, y2_obj = (
-            map(
-                int,
-                obj["bbox"]
+            x1_obj, y1_obj, x2_obj, y2_obj = (
+                map(
+                    int,
+                    obj["bbox"]
+                )
             )
-        )
 
-        cx, cy = map(
-            int,
-            obj["center"]
-        )
-
-        if not (
-            zone_x1 <= cx <= zone_x2
-            and
-            zone_y1 <= cy <= zone_y2
+        except (
+            TypeError,
+            ValueError,
+            KeyError
         ):
-
             continue
 
-        visible_objects.append(
-            obj
-        )
+        # IMPORTANT:
+        # Do not filter object visibility by the monitoring zone.
+        # The zone is a security/business-rule concept, not a
+        # detector-visibility filter.
+        visible_objects.append(obj)
 
         object_color = (
             255,
@@ -2121,10 +2089,45 @@ def draw_objects(
             2
         )
 
+        track_id = obj.get(
+            "track_id"
+        )
+
+        temporal_hits = obj.get(
+            "temporal_hits"
+        )
+
+        source = str(
+            obj.get(
+                "classification_source",
+                "detector"
+            )
+        )
+
+        verified = bool(
+            obj.get(
+                "verified",
+                False
+            )
+        )
+
         label = (
             f"{class_name.upper()} "
             f"{confidence * 100:.0f}%"
         )
+
+        if verified:
+            label += " | VERIFIED"
+
+        if track_id is not None:
+            label += (
+                f" | ID {track_id}"
+            )
+
+        if temporal_hits is not None:
+            label += (
+                f" | T{temporal_hits}"
+            )
 
         cv2.putText(
             frame,
@@ -2282,21 +2285,48 @@ def main():
     object_detector = DeepCameraDetector(
         model_path=cfg(
             "DEEPCAMERA_MODEL_PATH",
-            "yolo26n.pt"
+            "yoloe-26s-seg-pf.pt"
         ),
         confidence=cfg(
             "DEEPCAMERA_CONFIDENCE",
-            0.50
+            0.12
         ),
         iou=cfg(
             "DEEPCAMERA_IOU",
             0.45
         ),
-        fallback=legacy_object_detector
+        classes=cfg(
+            "DEEPCAMERA_CLASSES",
+            None
+        ),
+        fallback=legacy_object_detector,
+        imgsz=cfg(
+            "DEEPCAMERA_IMGSZ",
+            960
+        ),
+        max_det=cfg(
+            "DEEPCAMERA_MAX_DET",
+            300
+        ),
+        vlm_url=cfg(
+            "DEEPCAMERA_VLM_URL",
+            None
+        ),
+        vlm_model=cfg(
+            "DEEPCAMERA_VLM_MODEL",
+            "qwen3-vl:8b"
+        )
     )
 
     print(
-        "[INFO] DeepCamera object detector ready."
+        "[INFO] DeepCamera object recognition ready: "
+        "YOLOE-26 + Qwen3-VL verification/inventory."
+    )
+
+    print(
+        "[INFO] DeepCamera high-accuracy object "
+        "detection layer ready: YOLOE-26 "
+        "open-vocabulary + temporal tracking."
     )
 
     # --------------------------------------------------------
@@ -2574,6 +2604,42 @@ def main():
             draw_object_summary(
                 frame,
                 visible_objects
+            )
+
+            cv2.putText(
+                frame,
+                "Object AI: YOLOE-26 + Qwen3-VL | VLM is final classifier",
+                (
+                    20,
+                    135
+                ),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.48,
+                (
+                    255,
+                    200,
+                    0
+                ),
+                2,
+                cv2.LINE_AA
+            )
+
+            cv2.putText(
+                frame,
+                object_detector.status(),
+                (
+                    20,
+                    155
+                ),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.48,
+                (
+                    0,
+                    255,
+                    0
+                ),
+                2,
+                cv2.LINE_AA
             )
 
             # =================================================
