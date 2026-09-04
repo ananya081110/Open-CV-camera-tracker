@@ -2285,11 +2285,11 @@ def main():
     object_detector = DeepCameraDetector(
         model_path=cfg(
             "DEEPCAMERA_MODEL_PATH",
-            "yoloe-26s-seg-pf.pt"
+            "yolo26n.pt"
         ),
         confidence=cfg(
             "DEEPCAMERA_CONFIDENCE",
-            0.12
+            0.30
         ),
         iou=cfg(
             "DEEPCAMERA_IOU",
@@ -2302,7 +2302,7 @@ def main():
         fallback=legacy_object_detector,
         imgsz=cfg(
             "DEEPCAMERA_IMGSZ",
-            960
+            640
         ),
         max_det=cfg(
             "DEEPCAMERA_MAX_DET",
@@ -2319,14 +2319,8 @@ def main():
     )
 
     print(
-        "[INFO] DeepCamera object recognition ready: "
-        "YOLOE-26 + Qwen3-VL verification/inventory."
-    )
-
-    print(
-        "[INFO] DeepCamera high-accuracy object "
-        "detection layer ready: YOLOE-26 "
-        "open-vocabulary + temporal tracking."
+        "[INFO] Actual SharpAI DeepCamera YOLO-2026 "
+        "detection skill connected."
     )
 
     # --------------------------------------------------------
@@ -2608,7 +2602,7 @@ def main():
 
             cv2.putText(
                 frame,
-                "Object AI: YOLOE-26 + Qwen3-VL | VLM is final classifier",
+                "Object AI: DeepCamera YOLO-2026",
                 (
                     20,
                     135

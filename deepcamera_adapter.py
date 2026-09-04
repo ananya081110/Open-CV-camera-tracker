@@ -1,537 +1,435 @@
-
 """
-DeepCamera Object Recognition - high accuracy mode.
+DeepCamera integration bridge for AI Camera Tracker.
 
-Design:
-  1. YOLOE-26 prompt-free provides broad candidate detection
-     (Ultralytics documents a built-in 4,585-name vocabulary).
-  2. Qwen3-VL 8B through Ollama is the authoritative classifier.
-  3. Qwen3-VL verifies YOLO crops asynchronously, so the camera
-     loop stays responsive.
-  4. A periodic whole-frame Qwen3-VL inventory catches obvious
-     objects that YOLOE missed.
-  5. Temporal tracking keeps IDs stable while labels are corrected.
+This file does NOT reimplement YOLO or DeepCamera detection.
+It launches the ACTUAL SharpAI DeepCamera
+skills/detection/yolo-detection-2026/scripts/detect.py and talks to it
+using the JSONL protocol defined by DeepCamera.
 
-The final displayed label is the VLM label whenever a VLM result
-exists. YOLO is never allowed to overwrite a verified VLM label.
+The existing application API is preserved:
+    DeepCameraDetector(...).detect(frame)
+    DeepCameraDetector(...).status()
+    DeepCameraDetector(...).close()
 
-Recommended setup:
-    ollama pull qwen3-vl:8b
+Expected project layout:
+    ai_camera_tracker/
+      main.py
+      deepcamera_adapter.py
+      DeepCamera/
+        skills/detection/yolo-detection-2026/
+          .venv/
+          scripts/detect.py
+          yolo26n.onnx
+
+Environment overrides:
+    DEEPCAMERA_ROOT
+    DEEPCAMERA_SKILL
+    DEEPCAMERA_PYTHON
+    DEEPCAMERA_MODEL_SIZE   (nano/small/medium/large)
+    DEEPCAMERA_CONFIDENCE
+    DEEPCAMERA_FPS
 """
 
-import base64
 import json
 import os
 import queue
+import subprocess
 import threading
 import time
-import urllib.request
-from collections import deque
+from pathlib import Path
+import tempfile
 
 import cv2
 
 
-class TemporalObjectTracker:
-    def __init__(self, min_hits=2, max_missed=12, iou_threshold=0.18):
-        self.min_hits = min_hits
-        self.max_missed = max_missed
-        self.iou_threshold = iou_threshold
-        self.next_id = 1
-        self.tracks = {}
+def _find_skill():
+    explicit = os.getenv("DEEPCAMERA_SKILL", "").strip()
+    if explicit:
+        p = Path(explicit).expanduser().resolve()
+        if p.exists():
+            return p
 
-    @staticmethod
-    def iou(a, b):
-        ax1, ay1, ax2, ay2 = map(float, a)
-        bx1, by1, bx2, by2 = map(float, b)
-        ix1, iy1 = max(ax1, bx1), max(ay1, by1)
-        ix2, iy2 = min(ax2, bx2), min(ay2, by2)
-        inter = max(0, ix2 - ix1) * max(0, iy2 - iy1)
-        aa = max(0, ax2 - ax1) * max(0, ay2 - ay1)
-        ab = max(0, bx2 - bx1) * max(0, by2 - by1)
-        union = aa + ab - inter
-        return inter / union if union else 0.0
+    roots = []
+    root = os.getenv("DEEPCAMERA_ROOT", "").strip()
+    if root:
+        roots.append(Path(root).expanduser())
 
-    def update(self, detections):
-        detections = list(detections or [])
-        pairs = []
+    here = Path(__file__).resolve().parent
+    roots.extend([
+        here / "DeepCamera",
+        Path.home() / "DeepCamera",
+        Path.home() / "deepcamera",
+    ])
 
-        for tid, track in self.tracks.items():
-            for i, det in enumerate(detections):
-                score = self.iou(track["bbox"], det["bbox"])
-                if score >= self.iou_threshold:
-                    pairs.append((score, tid, i))
-
-        pairs.sort(reverse=True)
-        used_tracks = set()
-        used_dets = set()
-
-        for _, tid, i in pairs:
-            if tid in used_tracks or i in used_dets:
-                continue
-            det = detections[i]
-            track = self.tracks[tid]
-            track["bbox"] = det["bbox"]
-            track["last"] = det
-            track["hits"] += 1
-            track["missed"] = 0
-            used_tracks.add(tid)
-            used_dets.add(i)
-
-        for i, det in enumerate(detections):
-            if i in used_dets:
-                continue
-            self.tracks[self.next_id] = {
-                "bbox": det["bbox"],
-                "last": det,
-                "hits": 1,
-                "missed": 0,
-            }
-            self.next_id += 1
-
-        for tid in list(self.tracks):
-            if tid not in used_tracks:
-                self.tracks[tid]["missed"] += 1
-                if self.tracks[tid]["missed"] > self.max_missed:
-                    del self.tracks[tid]
-
-        out = []
-        for tid, track in self.tracks.items():
-            if track["missed"] == 0 and track["hits"] >= self.min_hits:
-                item = dict(track["last"])
-                item["track_id"] = tid
-                item["temporal_hits"] = track["hits"]
-                out.append(item)
-        return out
-
-
-class Qwen3VLVerifier:
-    """
-    Native Ollama /api/chat client.
-
-    Two modes:
-      - crop classification: authoritative label for a detected box
-      - whole-frame inventory: catches missed objects
-
-    Only one request runs at a time to avoid saturating a MacBook Air.
-    """
-
-    def __init__(self):
-        self.url = os.getenv(
-            "DEEPCAMERA_VLM_URL",
-            "http://localhost:11434/api/chat",
-        ).strip()
-
-        self.model = os.getenv(
-            "DEEPCAMERA_VLM_MODEL",
-            "qwen3-vl:8b",
-        ).strip()
-
-        self.crop_interval = float(
-            os.getenv("DEEPCAMERA_VLM_CROP_INTERVAL", "0.35")
+    for r in roots:
+        p = (
+            r / "skills" / "detection" / "yolo-detection-2026"
+            / "scripts" / "detect.py"
         )
-        self.inventory_interval = float(
-            os.getenv("DEEPCAMERA_VLM_INVENTORY_INTERVAL", "2.5")
-        )
-        self.timeout = float(
-            os.getenv("DEEPCAMERA_VLM_TIMEOUT", "20")
-        )
+        if p.exists():
+            return p.resolve()
 
-        self.enabled = False
-        self.busy = False
-        self.jobs = queue.Queue(maxsize=3)
-        self.results = {}
-        self.inventory = []
-        self.last_inventory = 0.0
-        self.last_crop = 0.0
-        self.last_error = ""
+    return None
+
+
+def _skill_python(skill_path: Path):
+    explicit = os.getenv("DEEPCAMERA_PYTHON", "").strip()
+    if explicit:
+        p = Path(explicit).expanduser()
+        if p.exists():
+            return str(p)
+
+    skill_root = skill_path.parent.parent
+    candidates = [
+        skill_root / ".venv" / "bin" / "python",
+        skill_root / ".venv" / "bin" / "python3",
+    ]
+    for p in candidates:
+        if p.exists():
+            return str(p)
+
+    # Last resort. Normally the deployment-created .venv is used.
+    return "python3"
+
+
+class _DeepCameraProcess:
+    """Persistent client for the actual DeepCamera detect.py."""
+
+    def __init__(self, model_size, confidence, fps):
+        self.skill_path = _find_skill()
+        self.model_size = model_size
+        self.confidence = float(confidence)
+        self.fps = max(0.2, float(fps))
+
+        self.process = None
+        self.reader = None
+        self.stderr_reader = None
+
+        self.ready = False
+        self.ready_event = None
+        self.error = ""
         self.lock = threading.Lock()
 
-        self._probe()
-        if self.enabled:
-            threading.Thread(
-                target=self._worker,
-                daemon=True,
-            ).start()
+        self.pending = {}
+        self.pending_cv = threading.Condition(self.lock)
+        self.frame_id = 0
 
-    def _probe(self):
-        try:
-            url = self.url.replace("/api/chat", "/api/tags")
-            req = urllib.request.Request(url, method="GET")
-            with urllib.request.urlopen(req, timeout=2) as response:
-                data = json.loads(response.read().decode("utf-8"))
+        self.last_objects = []
+        self.last_detection_time = 0.0
+        self.min_interval = 1.0 / self.fps
 
-            installed = {
-                str(x.get("name", ""))
-                for x in data.get("models", [])
-            }
+        self._start()
 
-            if self.model in installed:
-                self.enabled = True
-                print(
-                    f"[INFO] Qwen3-VL authoritative classification enabled: "
-                    f"{self.model}"
-                )
-            else:
-                print(
-                    f"[WARNING] {self.model} is not installed in Ollama."
-                )
-
-        except Exception as exc:
-            print(
-                "[WARNING] Cannot connect to Ollama at "
-                f"{self.url}: {exc}"
+    def _start(self):
+        if self.skill_path is None:
+            self.error = (
+                "Actual DeepCamera skill not found. "
+                "Set DEEPCAMERA_ROOT or DEEPCAMERA_SKILL."
             )
+            print("[ERROR] " + self.error)
+            return
 
-    @staticmethod
-    def _encode(image):
-        ok, encoded = cv2.imencode(
-            ".jpg",
-            image,
-            [int(cv2.IMWRITE_JPEG_QUALITY), 90],
-        )
-        if not ok:
-            return None
-        return base64.b64encode(encoded.tobytes()).decode("ascii")
+        python_bin = _skill_python(self.skill_path)
 
-    @staticmethod
-    def _parse_json(text):
-        text = str(text or "")
-        # Qwen may emit thinking text before the JSON.
-        for opener, closer in (("[", "]"), ("{", "}")):
-            start = text.find(opener)
-            end = text.rfind(closer)
-            if start >= 0 and end > start:
-                try:
-                    value = json.loads(text[start:end + 1])
-                    if isinstance(value, dict):
-                        return [value]
-                    if isinstance(value, list):
-                        return value
-                except Exception:
-                    continue
-        return []
-
-    def _call(self, image_b64, prompt):
-        payload = {
-            "model": self.model,
-            "stream": False,
-            "options": {
-                "temperature": 0,
-            },
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt,
-                    "images": [image_b64],
-                }
-            ],
+        # Empty classes is intentional: the actual DeepCamera skill
+        # interprets an empty class list as no filtering, exposing the
+        # complete model vocabulary rather than only its default subset.
+        params = {
+            "model_size": self.model_size,
+            "confidence": self.confidence,
+            "classes": [],
+            "device": "auto",
+            "fps": self.fps,
+            "use_optimized": True,
         }
 
-        request = urllib.request.Request(
-            self.url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
+        env = os.environ.copy()
+        env["AEGIS_SKILL_PARAMS"] = json.dumps(params)
+        env["PYTHONUNBUFFERED"] = "1"
+        env["YOLO_AUTOINSTALL"] = "0"
 
-        with urllib.request.urlopen(
-            request,
-            timeout=self.timeout,
-        ) as response:
-            data = json.loads(response.read().decode("utf-8"))
-
-        return data.get("message", {}).get("content", "")
-
-    def _crop_job(self, frame, track_id, bbox):
-        h, w = frame.shape[:2]
-        x1, y1, x2, y2 = map(int, bbox)
-
-        # Add a little context around the object.
-        bw = max(1, x2 - x1)
-        bh = max(1, y2 - y1)
-        pad_x = int(bw * 0.12)
-        pad_y = int(bh * 0.12)
-
-        x1 = max(0, x1 - pad_x)
-        y1 = max(0, y1 - pad_y)
-        x2 = min(w, x2 + pad_x)
-        y2 = min(h, y2 + pad_y)
-
-        crop = frame[y1:y2, x1:x2]
-        encoded = self._encode(crop)
-        if encoded is None:
-            return
-
-        prompt = """
-Identify the single physical object in this crop.
-
-Return ONLY JSON:
-{"label":"...", "confidence":0.00}
-
-Rules:
-- The label must be the actual object, not a visual guess from
-  another category.
-- Use a specific everyday object name.
-- A spoon must be "spoon"; a toothbrush must have a brush head
-  and bristles; do not confuse similar-looking objects.
-- Ignore the person, skin, hand, hair, clothes and background.
-- If the object is clearly a spoon, fork, knife, cup, phone,
-  bottle, pen, glasses, remote, keyboard, mouse, laptop, book,
-  chair, bag, etc., name it exactly.
-- Do not return "object", "item", "thing", or "unknown" if a
-  concrete object can be recognized.
-"""
-
-        raw = self._call(encoded, prompt)
-        parsed = self._parse_json(raw)
-
-        if not parsed:
-            return
-
-        item = parsed[0]
-        label = str(item.get("label", "")).strip()
         try:
-            confidence = float(item.get("confidence", 0))
+            self.process = subprocess.Popen(
+                [python_bin, str(self.skill_path)],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                env=env,
+            )
+        except Exception as exc:
+            self.error = f"Could not start DeepCamera: {exc}"
+            print("[ERROR] " + self.error)
+            return
+
+        self.reader = threading.Thread(
+            target=self._read_stdout,
+            daemon=True,
+            name="DeepCamera-stdout",
+        )
+        self.reader.start()
+
+        self.stderr_reader = threading.Thread(
+            target=self._read_stderr,
+            daemon=True,
+            name="DeepCamera-stderr",
+        )
+        self.stderr_reader.start()
+
+        deadline = time.monotonic() + 60.0
+        while time.monotonic() < deadline:
+            if self.ready:
+                return
+            if self.process.poll() is not None:
+                self.error = (
+                    f"DeepCamera exited during startup "
+                    f"(code={self.process.returncode})."
+                )
+                return
+            time.sleep(0.05)
+
+        self.error = "Timed out waiting for DeepCamera ready event."
+
+    def _read_stdout(self):
+        try:
+            for line in self.process.stdout:
+                line = line.strip()
+                if not line:
+                    continue
+
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    # The actual skill reserves stdout for JSONL, so
+                    # malformed/non-JSON lines are ignored defensively.
+                    continue
+
+                event_type = event.get("event")
+
+                if event_type == "ready":
+                    with self.lock:
+                        self.ready = True
+                        self.ready_event = event
+                        self.error = ""
+                    print(
+                        "[DeepCamera] READY | "
+                        f"model={event.get('model')} | "
+                        f"device={event.get('device')} | "
+                        f"backend={event.get('backend')} | "
+                        f"format={event.get('format')} | "
+                        f"classes={event.get('classes')}"
+                    )
+
+                elif event_type == "detections":
+                    frame_id = event.get("frame_id")
+                    with self.pending_cv:
+                        self.pending[frame_id] = event
+                        self.pending_cv.notify_all()
+
+                elif event_type == "error":
+                    frame_id = event.get("frame_id")
+                    message = str(event.get("message", "DeepCamera error"))
+                    with self.pending_cv:
+                        self.error = message
+                        if frame_id is not None:
+                            self.pending[frame_id] = event
+                        self.pending_cv.notify_all()
+
+                elif event_type == "perf_stats":
+                    timings = event.get("timings_ms", {})
+                    total = timings.get("total", {})
+                    if total:
+                        print(
+                            "[DeepCamera] PERF | "
+                            f"frames={event.get('total_frames')} | "
+                            f"inference={timings.get('inference', {}).get('avg', '-')}"
+                            f"ms | total={total.get('avg', '-')}ms"
+                        )
+
+        except Exception as exc:
+            with self.lock:
+                self.error = str(exc)
+
+    def _read_stderr(self):
+        try:
+            for line in self.process.stderr:
+                line = line.strip()
+                if line:
+                    print("[DeepCamera] " + line)
         except Exception:
-            confidence = 0.0
+            pass
 
-        if not label:
-            return
+    @staticmethod
+    def _write_frame(frame, frame_id):
+        directory = (
+            Path(tempfile.gettempdir())
+            / "ai_camera_tracker_deepcamera"
+        )
+        directory.mkdir(parents=True, exist_ok=True)
 
-        with self.lock:
-            self.results[track_id] = {
-                "label": label,
-                "confidence": max(0.0, min(1.0, confidence)),
-                "updated": time.time(),
-            }
-            self.last_error = ""
+        path = directory / f"frame_{frame_id}.jpg"
+        ok = cv2.imwrite(
+            str(path),
+            frame,
+            [int(cv2.IMWRITE_JPEG_QUALITY), 90],
+        )
+        return path if ok else None
 
-    def _inventory_job(self, frame):
-        encoded = self._encode(frame)
-        if encoded is None:
-            self.busy = False
-            return
+    def detect(self, frame, camera_id="ai_camera_tracker"):
+        now = time.monotonic()
 
-        prompt = """
-Find all clearly visible physical objects in this camera frame.
+        if self.process is None or self.process.poll() is not None:
+            return list(self.last_objects)
 
-Return ONLY a JSON array:
-[
-  {
-    "label":"specific object name",
-    "confidence":0.00,
-    "bbox":[x1,y1,x2,y2]
-  }
-]
+        if not self.ready:
+            return list(self.last_objects)
 
-Coordinates must be normalized 0.0-1.0 relative to the complete image.
+        # Match DeepCamera's configured processing FPS instead of
+        # running the skill once for every webcam frame.
+        if (
+            self.last_detection_time
+            and now - self.last_detection_time < self.min_interval
+        ):
+            return list(self.last_objects)
 
-Rules:
-- Include every clearly visible object, including small handheld
-  objects.
-- Do NOT include people, body parts, hair, skin, clothing or
-  background surfaces.
-- Use specific everyday names.
-- Do not invent objects.
-- Do not confuse a spoon with a toothbrush, fork, knife, pen,
-  or other object.
-- If an object is visible but uncertain, give lower confidence.
-"""
+        self.last_detection_time = now
+        self.frame_id += 1
+        frame_id = self.frame_id
 
-        raw = self._call(encoded, prompt)
-        parsed = self._parse_json(raw)
-        h, w = frame.shape[:2]
-        found = []
+        frame_path = self._write_frame(frame, frame_id)
+        if frame_path is None:
+            self.error = "Could not write frame for DeepCamera."
+            return list(self.last_objects)
 
-        for item in parsed:
+        message = {
+            "event": "frame",
+            "frame_id": frame_id,
+            "camera_id": camera_id,
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "frame_path": str(frame_path),
+            "width": int(frame.shape[1]),
+            "height": int(frame.shape[0]),
+        }
+
+        try:
+            with self.lock:
+                self.pending.pop(frame_id, None)
+
+            self.process.stdin.write(json.dumps(message) + "\n")
+            self.process.stdin.flush()
+        except Exception as exc:
+            self.error = str(exc)
             try:
-                label = str(item.get("label", "")).strip()
-                conf = float(item.get("confidence", 0))
-                box = item.get("bbox")
-
-                if (
-                    not label
-                    or not isinstance(box, list)
-                    or len(box) != 4
-                    or conf < 0.45
-                ):
-                    continue
-
-                if label.lower() in {
-                    "person", "human", "face", "hand",
-                    "arm", "leg", "body",
-                }:
-                    continue
-
-                x1 = max(0, min(w - 1, int(float(box[0]) * w)))
-                y1 = max(0, min(h - 1, int(float(box[1]) * h)))
-                x2 = max(x1 + 1, min(w, int(float(box[2]) * w)))
-                y2 = max(y1 + 1, min(h, int(float(box[3]) * h)))
-
-                found.append({
-                    "class_name": label,
-                    "confidence": conf,
-                    "bbox": [x1, y1, x2, y2],
-                    "center": [
-                        (x1 + x2) // 2,
-                        (y1 + y2) // 2,
-                    ],
-                    "classification_source": "Qwen3-VL",
-                    "raw_class_name": label,
-                    "raw_confidence": conf,
-                    "verified": True,
-                    "inventory": True,
-                })
+                frame_path.unlink(missing_ok=True)
             except Exception:
+                pass
+            return list(self.last_objects)
+
+        event = None
+        deadline = time.monotonic() + 2.0
+
+        with self.pending_cv:
+            while time.monotonic() < deadline:
+                event = self.pending.pop(frame_id, None)
+                if event is not None:
+                    break
+                self.pending_cv.wait(timeout=0.01)
+
+        # The skill reads the frame synchronously before returning its
+        # detection event, so it is safe to remove the shared file now.
+        try:
+            frame_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+        if not event or event.get("event") != "detections":
+            return list(self.last_objects)
+
+        objects = []
+        for obj in event.get("objects", []):
+            try:
+                bbox = obj["bbox"]
+                if len(bbox) != 4:
+                    continue
+
+                objects.append({
+                    "class_name": str(obj["class"]),
+                    "confidence": float(obj["confidence"]),
+                    "bbox": [int(v) for v in bbox],
+                    "center": [
+                        int((bbox[0] + bbox[2]) / 2),
+                        int((bbox[1] + bbox[3]) / 2),
+                    ],
+                    "classification_source": "DeepCamera-YOLO2026",
+                    "raw_class_name": str(obj["class"]),
+                    "raw_confidence": float(obj["confidence"]),
+                    "verified": False,
+                })
+            except (KeyError, TypeError, ValueError):
                 continue
 
-        with self.lock:
-            self.inventory = found
-            self.last_inventory = time.time()
-            self.last_error = ""
-
-    def _worker(self):
-        while True:
-            job = self.jobs.get()
-            if job is None:
-                return
-
-            self.busy = True
-            try:
-                kind, frame, ident, bbox = job
-
-                if kind == "crop":
-                    self._crop_job(
-                        frame,
-                        ident,
-                        bbox,
-                    )
-                    self.last_crop = time.time()
-                else:
-                    self._inventory_job(frame)
-            except Exception as exc:
-                with self.lock:
-                    self.last_error = str(exc)
-            finally:
-                self.busy = False
-                self.jobs.task_done()
-
-    def submit(self, frame, tracks):
-        if not self.enabled:
-            return
-
-        now = time.time()
-
-        # Prioritize crop verification for newly detected/low-confidence
-        # tracked objects. Only queue one at a time.
-        with self.lock:
-            verified_ids = set(self.results)
-
-        candidates = [
-            t for t in tracks
-            if t.get("track_id") not in verified_ids
-        ]
-
-        if (
-            not self.busy
-            and candidates
-            and now - self.last_crop >= self.crop_interval
-        ):
-            candidate = candidates[0]
-            try:
-                self.jobs.put_nowait((
-                    "crop",
-                    frame.copy(),
-                    candidate["track_id"],
-                    candidate["bbox"],
-                ))
-            except queue.Full:
-                pass
-
-        # Periodic whole-frame inventory catches objects YOLOE missed.
-        if (
-            not self.busy
-            and now - self.last_inventory >= self.inventory_interval
-        ):
-            try:
-                self.jobs.put_nowait((
-                    "inventory",
-                    frame.copy(),
-                    None,
-                    None,
-                ))
-            except queue.Full:
-                pass
-
-    def apply(self, tracks):
-        output = []
-
-        with self.lock:
-            verified = dict(self.results)
-            inventory = list(self.inventory)
-
-        for item in tracks:
-            item = dict(item)
-            tid = item.get("track_id")
-            result = verified.get(tid)
-
-            if result:
-                item["raw_class_name"] = item.get(
-                    "class_name",
-                    "",
-                )
-                item["raw_confidence"] = item.get(
-                    "confidence",
-                    0.0,
-                )
-                item["class_name"] = result["label"]
-                item["confidence"] = result["confidence"]
-                item["classification_source"] = (
-                    "YOLOE+Qwen3-VL"
-                )
-                item["verified"] = True
-
-            output.append(item)
-
-        # Add VLM-only objects that don't overlap YOLO boxes.
-        for item in inventory:
-            duplicate = False
-            for existing in output:
-                if TemporalObjectTracker.iou(
-                    existing["bbox"],
-                    item["bbox"],
-                ) >= 0.25:
-                    duplicate = True
-                    break
-
-            if not duplicate:
-                output.append(item)
-
-        return output
+        self.last_objects = objects
+        return list(objects)
 
     def status(self):
-        with self.lock:
-            if not self.enabled:
-                return "Qwen3-VL: OFF"
-            if self.busy:
-                return "Qwen3-VL: VERIFYING"
-            if self.last_error:
-                return "Qwen3-VL: ERROR"
-            return "Qwen3-VL: ACTIVE"
+        if self.process is None:
+            return "DeepCamera: OFF"
+        if self.process.poll() is not None:
+            return "DeepCamera: ERROR"
+        if self.ready:
+            if self.ready_event:
+                return (
+                    "DeepCamera: ACTIVE | "
+                    f"{self.ready_event.get('model', 'YOLO2026')} | "
+                    f"{self.ready_event.get('format', 'runtime')} | "
+                    f"{self.ready_event.get('device', 'auto')}"
+                )
+            return "DeepCamera: ACTIVE"
+        return "DeepCamera: STARTING"
+
+    def close(self):
+        if self.process is None:
+            return
+
+        try:
+            self.process.stdin.write(
+                json.dumps({"command": "stop"}) + "\n"
+            )
+            self.process.stdin.flush()
+        except Exception:
+            pass
+
+        try:
+            self.process.terminate()
+            self.process.wait(timeout=5)
+        except Exception:
+            try:
+                self.process.kill()
+            except Exception:
+                pass
 
 
 class DeepCameraDetector:
+    """
+    Public compatibility wrapper.
+
+    DeepCamera is the primary detector. The optional fallback is used
+    only when the actual skill has no usable result, preserving the
+    existing application if the external skill temporarily fails.
+    """
+
     def __init__(
         self,
-        model_path="yoloe-26s-seg-pf.pt",
-        confidence=0.12,
+        model_path="yolo26n.pt",
+        confidence=0.30,
         iou=0.45,
         classes=None,
         fallback=None,
-        imgsz=960,
+        imgsz=640,
         max_det=300,
         vlm_url=None,
-        vlm_model=None,
+        vlm_model="qwen3-vl:8b",
     ):
         self.model_path = model_path
         self.confidence = float(confidence)
@@ -541,138 +439,57 @@ class DeepCameraDetector:
         self.imgsz = int(imgsz)
         self.max_det = int(max_det)
 
-        if vlm_url:
-            os.environ["DEEPCAMERA_VLM_URL"] = str(vlm_url)
-        if vlm_model:
-            os.environ["DEEPCAMERA_VLM_MODEL"] = str(vlm_model)
+        model_size = os.getenv(
+            "DEEPCAMERA_MODEL_SIZE",
+            "nano",
+        )
+        fps = float(os.getenv("DEEPCAMERA_FPS", "5"))
 
-        self.model = None
-        self.model_type = "none"
-        self.tracker = TemporalObjectTracker()
-        self.vlm = Qwen3VLVerifier()
+        self._deepcamera = _DeepCameraProcess(
+            model_size=model_size,
+            confidence=self.confidence,
+            fps=fps,
+        )
 
-        self._load_model()
+        # VLM parameters are retained for compatibility with the current
+        # main.py. VLM is intentionally not mixed into the actual
+        # DeepCamera YOLO skill.
+        self.vlm_url = vlm_url
+        self.vlm_model = vlm_model
 
-    def _load_model(self):
-        try:
-            from ultralytics import YOLOE
-
-            self.model = YOLOE(self.model_path)
-            self.model_type = "yoloe"
-
-            print(
-                "[INFO] YOLOE-26 prompt-free ready "
-                f"(built-in broad vocabulary): {self.model_path}"
-            )
-            return
-        except Exception as exc:
-            print(f"[WARNING] YOLOE unavailable: {exc}")
-
-        try:
-            from ultralytics import YOLO
-            fallback_model = os.getenv(
-                "DEEPCAMERA_FALLBACK_MODEL",
-                "yolo26s.pt",
-            )
-            self.model = YOLO(fallback_model)
-            self.model_type = "yolo26"
-            print(
-                f"[INFO] YOLO26 fallback ready: {fallback_model}"
-            )
-            return
-        except Exception as exc:
-            print(f"[WARNING] YOLO26 unavailable: {exc}")
-
-        if self.fallback is not None:
-            print("[WARNING] Using existing ObjectDetector fallback.")
-
-    @staticmethod
-    def _normalize(box, name, conf, source):
-        x1, y1, x2, y2 = map(float, box)
-        return {
-            "class_name": str(name).strip(),
-            "confidence": float(conf),
-            "bbox": [
-                int(x1), int(y1), int(x2), int(y2)
-            ],
-            "center": [
-                int((x1 + x2) / 2),
-                int((y1 + y2) / 2),
-            ],
-            "classification_source": source,
-            "raw_class_name": str(name).strip(),
-            "raw_confidence": float(conf),
-            "verified": False,
-        }
-
-    def _detect_local(self, frame):
-        if self.model is None:
-            if self.fallback is not None:
-                return self.fallback.detect(frame)
-            return []
-
-        try:
-            results = self.model.predict(
-                source=frame,
-                conf=self.confidence,
-                iou=self.iou,
-                imgsz=self.imgsz,
-                max_det=self.max_det,
-                verbose=False,
-            )
-        except Exception as exc:
-            print(f"[WARNING] YOLO inference failed: {exc}")
-            if self.fallback is not None:
-                return self.fallback.detect(frame)
-            return []
-
-        if not results or results[0].boxes is None:
-            return []
-
-        result = results[0]
-        names = result.names
-        detections = []
-
-        for box in result.boxes:
-            try:
-                cid = int(box.cls[0])
-                conf = float(box.conf[0])
-                name = names[cid]
-
-                detections.append(
-                    self._normalize(
-                        box.xyxy[0].tolist(),
-                        name,
-                        conf,
-                        "YOLOE"
-                        if self.model_type == "yoloe"
-                        else "YOLO26",
-                    )
-                )
-            except Exception:
-                continue
-
-        return detections
+        print(
+            "[INFO] ACTUAL DeepCamera YOLO-2026 skill connected."
+        )
+        print(
+            f"[INFO] Skill: {self._deepcamera.skill_path}"
+        )
+        print(
+            f"[INFO] Model size: {model_size} | FPS: {fps}"
+        )
 
     def detect(self, frame, timestamp_ms=None):
-        raw = self._detect_local(frame)
+        objects = self._deepcamera.detect(frame)
 
-        # Track first, then send stable boxes to the authoritative VLM.
-        tracks = self.tracker.update(raw)
+        # Preserve existing functionality if DeepCamera is temporarily
+        # unavailable, but never replace DeepCamera as the primary path.
+        if not objects and self.fallback is not None:
+            try:
+                objects = self.fallback.detect(frame)
+                for obj in objects:
+                    obj.setdefault(
+                        "classification_source",
+                        "legacy-fallback",
+                    )
+            except Exception:
+                objects = []
 
-        self.vlm.submit(
-            frame,
-            tracks,
-        )
-
-        final = self.vlm.apply(
-            tracks
-        )
-
-        return final
+        return objects
 
     def status(self):
-        return self.vlm.status()
+        return self._deepcamera.status()
 
     def close(self):
-        pass
+        self._deepcamera.close()
+
+
+__all__ = ["DeepCameraDetector"]
