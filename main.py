@@ -14,7 +14,6 @@ from detector import PoseDetector
 from download_model import MODEL_PATH
 from event_manager import capture_event
 from tracker import CentroidTracker
-from object_detector import ObjectDetector
 from deepcamera_adapter import DeepCameraDetector
 from security_alerts import SecurityAlertManager
 from camera_control import load_camera_control
@@ -2276,12 +2275,6 @@ def main():
         "[INFO] Loading DeepCamera object detector..."
     )
 
-    legacy_object_detector = ObjectDetector(
-        model_path="yolo11n.pt",
-        confidence=0.50,
-        iou=0.45
-    )
-
     object_detector = DeepCameraDetector(
         model_path=cfg(
             "DEEPCAMERA_MODEL_PATH",
@@ -2299,7 +2292,6 @@ def main():
             "DEEPCAMERA_CLASSES",
             None
         ),
-        fallback=legacy_object_detector,
         imgsz=cfg(
             "DEEPCAMERA_IMGSZ",
             640
@@ -2319,8 +2311,7 @@ def main():
     )
 
     print(
-        "[INFO] Actual SharpAI DeepCamera YOLO-2026 "
-        "detection skill connected."
+        "[INFO] Project-local YOLO26 object detection engine connected."
     )
 
     # --------------------------------------------------------
@@ -2567,7 +2558,8 @@ def main():
 
             tracks = tracker.update(
                 detections,
-                now
+                now,
+                frame=frame
             )
 
             # =================================================
@@ -2602,7 +2594,7 @@ def main():
 
             cv2.putText(
                 frame,
-                "Object AI: DeepCamera YOLO-2026",
+                "Object AI: YOLO26",
                 (
                     20,
                     135
