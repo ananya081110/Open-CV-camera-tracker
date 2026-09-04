@@ -1,45 +1,26 @@
-from pathlib import Path
+"""
+Compatibility object detector.
+
+The main application now uses deepcamera_adapter.py as its single
+project-local YOLO26 detection engine. This class remains available
+for older modules that import ObjectDetector.
+"""
 
 from ultralytics import YOLO
 
 
 class ObjectDetector:
-    """
-    General-purpose object detector.
-
-    This is separate from the existing MediaPipe person/pose
-    detector so existing person-specific functionality remains
-    unchanged.
-    """
-
     def __init__(
         self,
-        model_path="yolo11n.pt",
-        confidence=0.50,
+        model_path="yolo26n.pt",
+        confidence=0.30,
         iou=0.45,
     ):
-        self.confidence = confidence
-        self.iou = iou
-
-        # Ultralytics automatically downloads the model the first
-        # time it is used if it is not already available.
+        self.confidence = float(confidence)
+        self.iou = float(iou)
         self.model = YOLO(model_path)
 
     def detect(self, frame):
-        """
-        Detect objects in a BGR OpenCV frame.
-
-        Returns a list of dictionaries:
-
-        {
-            "class_id": int,
-            "class_name": str,
-            "confidence": float,
-            "bbox": (x1, y1, x2, y2),
-            "center": (cx, cy)
-        }
-        """
-
         if frame is None:
             return []
 
@@ -52,80 +33,42 @@ class ObjectDetector:
 
         detections = []
 
-        if not results:
+        if not results or results[0].boxes is None:
             return detections
 
         result = results[0]
-
-        if result.boxes is None:
-            return detections
-
         names = result.names
 
         for box in result.boxes:
-
             try:
-                class_id = int(
-                    box.cls[0].item()
-                )
-
-                confidence = float(
-                    box.conf[0].item()
-                )
-
-                coordinates = (
+                class_id = int(box.cls[0].item())
+                confidence = float(box.conf[0].item())
+                x1, y1, x2, y2 = (
                     box.xyxy[0]
                     .cpu()
                     .numpy()
                     .tolist()
                 )
-
-                x1, y1, x2, y2 = (
-                    coordinates
-                )
-
-            except (
-                TypeError,
-                ValueError,
-                IndexError,
-                AttributeError,
-            ):
+            except Exception:
                 continue
 
-            x1 = int(x1)
-            y1 = int(y1)
-            x2 = int(x2)
-            y2 = int(y2)
-
-            cx = int(
-                (x1 + x2) / 2
+            x1, y1, x2, y2 = map(
+                int,
+                (x1, y1, x2, y2)
             )
 
-            cy = int(
-                (y1 + y2) / 2
-            )
-
-            class_name = names.get(
-                class_id,
-                str(class_id),
-            )
-
-            detections.append(
-                {
-                    "class_id": class_id,
-                    "class_name": class_name,
-                    "confidence": confidence,
-                    "bbox": (
-                        x1,
-                        y1,
-                        x2,
-                        y2,
-                    ),
-                    "center": (
-                        cx,
-                        cy,
-                    ),
-                }
-            )
+            detections.append({
+                "class_id": class_id,
+                "class_name": names.get(
+                    class_id,
+                    str(class_id)
+                ),
+                "confidence": confidence,
+                "bbox": (x1, y1, x2, y2),
+                "center": (
+                    int((x1 + x2) / 2),
+                    int((y1 + y2) / 2),
+                ),
+            })
 
         return detections
