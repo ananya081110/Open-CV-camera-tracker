@@ -1,422 +1,100 @@
 """
-DeepCamera integration bridge for AI Camera Tracker.
+Local DeepCamera-style object detection engine for AI Camera Tracker.
 
-This file does NOT reimplement YOLO or DeepCamera detection.
-It launches the ACTUAL SharpAI DeepCamera
-skills/detection/yolo-detection-2026/scripts/detect.py and talks to it
-using the JSONL protocol defined by DeepCamera.
+This module is self-contained inside the AI Camera Tracker project.
+It does NOT import, clone, launch, or depend on the SharpAI/DeepCamera
+repository.
 
-The existing application API is preserved:
+It implements the useful DeepCamera detection-layer behavior directly:
+- YOLO26 object detection
+- configurable confidence / image size / max detections
+- automatic Apple Silicon MPS selection when available
+- optional ONNX model support
+- frame-rate governor for camera streams
+- lightweight IoU tracking with stable object IDs
+- temporal confirmation to reduce one-frame false positives
+- normalized application output used by main.py
+- optional legacy fallback for backward compatibility
+
+The model itself is downloaded by Ultralytics if it is not present.
+The project therefore depends on the YOLO26 model/package, not on another
+repository.
+
+Public API preserved for the existing main.py:
     DeepCameraDetector(...).detect(frame)
     DeepCameraDetector(...).status()
     DeepCameraDetector(...).close()
-
-Expected project layout:
-    ai_camera_tracker/
-      main.py
-      deepcamera_adapter.py
-      DeepCamera/
-        skills/detection/yolo-detection-2026/
-          .venv/
-          scripts/detect.py
-          yolo26n.onnx
-
-Environment overrides:
-    DEEPCAMERA_ROOT
-    DEEPCAMERA_SKILL
-    DEEPCAMERA_PYTHON
-    DEEPCAMERA_MODEL_SIZE   (nano/small/medium/large)
-    DEEPCAMERA_CONFIDENCE
-    DEEPCAMERA_FPS
 """
 
-import json
+from __future__ import annotations
+
 import os
-import queue
-import subprocess
-import threading
+import platform
 import time
+from collections import deque
 from pathlib import Path
-import tempfile
+from typing import Any, Dict, List, Optional
 
 import cv2
 
 
-def _find_skill():
-    explicit = os.getenv("DEEPCAMERA_SKILL", "").strip()
-    if explicit:
-        p = Path(explicit).expanduser().resolve()
-        if p.exists():
-            return p
-
-    roots = []
-    root = os.getenv("DEEPCAMERA_ROOT", "").strip()
-    if root:
-        roots.append(Path(root).expanduser())
-
-    here = Path(__file__).resolve().parent
-    roots.extend([
-        here / "DeepCamera",
-        Path.home() / "DeepCamera",
-        Path.home() / "deepcamera",
-    ])
-
-    for r in roots:
-        p = (
-            r / "skills" / "detection" / "yolo-detection-2026"
-            / "scripts" / "detect.py"
-        )
-        if p.exists():
-            return p.resolve()
-
-    return None
+def _clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
 
 
-def _skill_python(skill_path: Path):
-    explicit = os.getenv("DEEPCAMERA_PYTHON", "").strip()
-    if explicit:
-        p = Path(explicit).expanduser()
-        if p.exists():
-            return str(p)
+def _iou(a, b) -> float:
+    try:
+        ax1, ay1, ax2, ay2 = map(float, a)
+        bx1, by1, bx2, by2 = map(float, b)
+    except Exception:
+        return 0.0
 
-    skill_root = skill_path.parent.parent
-    candidates = [
-        skill_root / ".venv" / "bin" / "python",
-        skill_root / ".venv" / "bin" / "python3",
-    ]
-    for p in candidates:
-        if p.exists():
-            return str(p)
+    ix1 = max(ax1, bx1)
+    iy1 = max(ay1, by1)
+    ix2 = min(ax2, bx2)
+    iy2 = min(ay2, by2)
 
-    # Last resort. Normally the deployment-created .venv is used.
-    return "python3"
+    intersection = (
+        max(0.0, ix2 - ix1)
+        * max(0.0, iy2 - iy1)
+    )
+
+    area_a = (
+        max(0.0, ax2 - ax1)
+        * max(0.0, ay2 - ay1)
+    )
+    area_b = (
+        max(0.0, bx2 - bx1)
+        * max(0.0, by2 - by1)
+    )
+
+    union = area_a + area_b - intersection
+    return intersection / union if union > 0 else 0.0
 
 
-class _DeepCameraProcess:
-    """Persistent client for the actual DeepCamera detect.py."""
+def _clean_label(value: Any) -> str:
+    return " ".join(str(value or "").strip().split())
 
-    def __init__(self, model_size, confidence, fps):
-        self.skill_path = _find_skill()
-        self.model_size = model_size
-        self.confidence = float(confidence)
-        self.fps = max(0.2, float(fps))
 
-        self.process = None
-        self.reader = None
-        self.stderr_reader = None
-
-        self.ready = False
-        self.ready_event = None
-        self.error = ""
-        self.lock = threading.Lock()
-
-        self.pending = {}
-        self.pending_cv = threading.Condition(self.lock)
-        self.frame_id = 0
-
-        self.last_objects = []
-        self.last_detection_time = 0.0
-        self.min_interval = 1.0 / self.fps
-
-        self._start()
-
-    def _start(self):
-        if self.skill_path is None:
-            self.error = (
-                "Actual DeepCamera skill not found. "
-                "Set DEEPCAMERA_ROOT or DEEPCAMERA_SKILL."
-            )
-            print("[ERROR] " + self.error)
-            return
-
-        python_bin = _skill_python(self.skill_path)
-
-        # Empty classes is intentional: the actual DeepCamera skill
-        # interprets an empty class list as no filtering, exposing the
-        # complete model vocabulary rather than only its default subset.
-        params = {
-            "model_size": self.model_size,
-            "confidence": self.confidence,
-            "classes": [],
-            "device": "auto",
-            "fps": self.fps,
-            "use_optimized": True,
-        }
-
-        env = os.environ.copy()
-        env["AEGIS_SKILL_PARAMS"] = json.dumps(params)
-        env["PYTHONUNBUFFERED"] = "1"
-        env["YOLO_AUTOINSTALL"] = "0"
-
-        try:
-            self.process = subprocess.Popen(
-                [python_bin, str(self.skill_path)],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1,
-                env=env,
-            )
-        except Exception as exc:
-            self.error = f"Could not start DeepCamera: {exc}"
-            print("[ERROR] " + self.error)
-            return
-
-        self.reader = threading.Thread(
-            target=self._read_stdout,
-            daemon=True,
-            name="DeepCamera-stdout",
-        )
-        self.reader.start()
-
-        self.stderr_reader = threading.Thread(
-            target=self._read_stderr,
-            daemon=True,
-            name="DeepCamera-stderr",
-        )
-        self.stderr_reader.start()
-
-        deadline = time.monotonic() + 60.0
-        while time.monotonic() < deadline:
-            if self.ready:
-                return
-            if self.process.poll() is not None:
-                self.error = (
-                    f"DeepCamera exited during startup "
-                    f"(code={self.process.returncode})."
-                )
-                return
-            time.sleep(0.05)
-
-        self.error = "Timed out waiting for DeepCamera ready event."
-
-    def _read_stdout(self):
-        try:
-            for line in self.process.stdout:
-                line = line.strip()
-                if not line:
-                    continue
-
-                try:
-                    event = json.loads(line)
-                except json.JSONDecodeError:
-                    # The actual skill reserves stdout for JSONL, so
-                    # malformed/non-JSON lines are ignored defensively.
-                    continue
-
-                event_type = event.get("event")
-
-                if event_type == "ready":
-                    with self.lock:
-                        self.ready = True
-                        self.ready_event = event
-                        self.error = ""
-                    print(
-                        "[DeepCamera] READY | "
-                        f"model={event.get('model')} | "
-                        f"device={event.get('device')} | "
-                        f"backend={event.get('backend')} | "
-                        f"format={event.get('format')} | "
-                        f"classes={event.get('classes')}"
-                    )
-
-                elif event_type == "detections":
-                    frame_id = event.get("frame_id")
-                    with self.pending_cv:
-                        self.pending[frame_id] = event
-                        self.pending_cv.notify_all()
-
-                elif event_type == "error":
-                    frame_id = event.get("frame_id")
-                    message = str(event.get("message", "DeepCamera error"))
-                    with self.pending_cv:
-                        self.error = message
-                        if frame_id is not None:
-                            self.pending[frame_id] = event
-                        self.pending_cv.notify_all()
-
-                elif event_type == "perf_stats":
-                    timings = event.get("timings_ms", {})
-                    total = timings.get("total", {})
-                    if total:
-                        print(
-                            "[DeepCamera] PERF | "
-                            f"frames={event.get('total_frames')} | "
-                            f"inference={timings.get('inference', {}).get('avg', '-')}"
-                            f"ms | total={total.get('avg', '-')}ms"
-                        )
-
-        except Exception as exc:
-            with self.lock:
-                self.error = str(exc)
-
-    def _read_stderr(self):
-        try:
-            for line in self.process.stderr:
-                line = line.strip()
-                if line:
-                    print("[DeepCamera] " + line)
-        except Exception:
-            pass
-
-    @staticmethod
-    def _write_frame(frame, frame_id):
-        directory = (
-            Path(tempfile.gettempdir())
-            / "ai_camera_tracker_deepcamera"
-        )
-        directory.mkdir(parents=True, exist_ok=True)
-
-        path = directory / f"frame_{frame_id}.jpg"
-        ok = cv2.imwrite(
-            str(path),
-            frame,
-            [int(cv2.IMWRITE_JPEG_QUALITY), 90],
-        )
-        return path if ok else None
-
-    def detect(self, frame, camera_id="ai_camera_tracker"):
-        now = time.monotonic()
-
-        if self.process is None or self.process.poll() is not None:
-            return list(self.last_objects)
-
-        if not self.ready:
-            return list(self.last_objects)
-
-        # Match DeepCamera's configured processing FPS instead of
-        # running the skill once for every webcam frame.
-        if (
-            self.last_detection_time
-            and now - self.last_detection_time < self.min_interval
-        ):
-            return list(self.last_objects)
-
-        self.last_detection_time = now
-        self.frame_id += 1
-        frame_id = self.frame_id
-
-        frame_path = self._write_frame(frame, frame_id)
-        if frame_path is None:
-            self.error = "Could not write frame for DeepCamera."
-            return list(self.last_objects)
-
-        message = {
-            "event": "frame",
-            "frame_id": frame_id,
-            "camera_id": camera_id,
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
-            "frame_path": str(frame_path),
-            "width": int(frame.shape[1]),
-            "height": int(frame.shape[0]),
-        }
-
-        try:
-            with self.lock:
-                self.pending.pop(frame_id, None)
-
-            self.process.stdin.write(json.dumps(message) + "\n")
-            self.process.stdin.flush()
-        except Exception as exc:
-            self.error = str(exc)
-            try:
-                frame_path.unlink(missing_ok=True)
-            except Exception:
-                pass
-            return list(self.last_objects)
-
-        event = None
-        deadline = time.monotonic() + 2.0
-
-        with self.pending_cv:
-            while time.monotonic() < deadline:
-                event = self.pending.pop(frame_id, None)
-                if event is not None:
-                    break
-                self.pending_cv.wait(timeout=0.01)
-
-        # The skill reads the frame synchronously before returning its
-        # detection event, so it is safe to remove the shared file now.
-        try:
-            frame_path.unlink(missing_ok=True)
-        except Exception:
-            pass
-
-        if not event or event.get("event") != "detections":
-            return list(self.last_objects)
-
-        objects = []
-        for obj in event.get("objects", []):
-            try:
-                bbox = obj["bbox"]
-                if len(bbox) != 4:
-                    continue
-
-                objects.append({
-                    "class_name": str(obj["class"]),
-                    "confidence": float(obj["confidence"]),
-                    "bbox": [int(v) for v in bbox],
-                    "center": [
-                        int((bbox[0] + bbox[2]) / 2),
-                        int((bbox[1] + bbox[3]) / 2),
-                    ],
-                    "classification_source": "DeepCamera-YOLO2026",
-                    "raw_class_name": str(obj["class"]),
-                    "raw_confidence": float(obj["confidence"]),
-                    "verified": False,
-                })
-            except (KeyError, TypeError, ValueError):
-                continue
-
-        self.last_objects = objects
-        return list(objects)
-
-    def status(self):
-        if self.process is None:
-            return "DeepCamera: OFF"
-        if self.process.poll() is not None:
-            return "DeepCamera: ERROR"
-        if self.ready:
-            if self.ready_event:
-                return (
-                    "DeepCamera: ACTIVE | "
-                    f"{self.ready_event.get('model', 'YOLO2026')} | "
-                    f"{self.ready_event.get('format', 'runtime')} | "
-                    f"{self.ready_event.get('device', 'auto')}"
-                )
-            return "DeepCamera: ACTIVE"
-        return "DeepCamera: STARTING"
-
-    def close(self):
-        if self.process is None:
-            return
-
-        try:
-            self.process.stdin.write(
-                json.dumps({"command": "stop"}) + "\n"
-            )
-            self.process.stdin.flush()
-        except Exception:
-            pass
-
-        try:
-            self.process.terminate()
-            self.process.wait(timeout=5)
-        except Exception:
-            try:
-                self.process.kill()
-            except Exception:
-                pass
+class _ObjectTrack:
+    def __init__(self, track_id: int, obj: Dict[str, Any]):
+        self.id = track_id
+        self.bbox = list(obj["bbox"])
+        self.class_name = obj["class_name"]
+        self.confidence = float(obj["confidence"])
+        self.last_seen = time.monotonic()
+        self.missed = 0
 
 
 class DeepCameraDetector:
     """
-    Public compatibility wrapper.
+    Project-local DeepCamera-style detection engine.
 
-    DeepCamera is the primary detector. The optional fallback is used
-    only when the actual skill has no usable result, preserving the
-    existing application if the external skill temporarily fails.
+    The class name is retained so the existing application does not
+    need a broad refactor. Internally, this is now YOUR detector:
+    YOLO26 + frame governor + temporal confirmation + IoU tracking.
+
+    No SharpAI/DeepCamera repository is required at runtime.
     """
 
     def __init__(
@@ -430,8 +108,13 @@ class DeepCameraDetector:
         max_det=300,
         vlm_url=None,
         vlm_model="qwen3-vl:8b",
+        fps=5,
+        temporal_hits=2,
+        temporal_window=3,
+        track_iou=0.25,
+        max_missed=8,
     ):
-        self.model_path = model_path
+        self.model_path = str(model_path or "yolo26n.pt")
         self.confidence = float(confidence)
         self.iou = float(iou)
         self.classes = classes
@@ -439,57 +122,440 @@ class DeepCameraDetector:
         self.imgsz = int(imgsz)
         self.max_det = int(max_det)
 
-        model_size = os.getenv(
-            "DEEPCAMERA_MODEL_SIZE",
-            "nano",
+        self.fps = max(
+            0.2,
+            float(os.getenv("DEEPCAMERA_FPS", str(fps))),
         )
-        fps = float(os.getenv("DEEPCAMERA_FPS", "5"))
+        self.min_interval = 1.0 / self.fps
 
-        self._deepcamera = _DeepCameraProcess(
-            model_size=model_size,
-            confidence=self.confidence,
-            fps=fps,
-        )
+        self.temporal_hits_required = max(1, int(temporal_hits))
+        self.temporal_window = max(1, int(temporal_window))
+        self.track_iou = float(track_iou)
+        self.max_missed = int(max_missed)
 
-        # VLM parameters are retained for compatibility with the current
-        # main.py. VLM is intentionally not mixed into the actual
-        # DeepCamera YOLO skill.
-        self.vlm_url = vlm_url
-        self.vlm_model = vlm_model
+        self.model = None
+        self.model_kind = None
+        self.device = "cpu"
 
-        print(
-            "[INFO] ACTUAL DeepCamera YOLO-2026 skill connected."
-        )
-        print(
-            f"[INFO] Skill: {self._deepcamera.skill_path}"
-        )
-        print(
-            f"[INFO] Model size: {model_size} | FPS: {fps}"
-        )
+        self.last_objects: List[Dict[str, Any]] = []
+        self.last_detection_time = 0.0
+        self.last_inference_ms = 0.0
+        self.total_frames = 0
+        self.total_detections = 0
+        self.last_error = ""
+
+        self.next_track_id = 1
+        self.tracks: Dict[int, _ObjectTrack] = {}
+
+        # Per-track temporal history: recent class/bbox confirmations.
+        self.histories: Dict[int, deque] = {}
+
+        self._load_model()
+
+    # ============================================================
+    # MODEL / HARDWARE
+    # ============================================================
+
+    def _select_device(self) -> str:
+        forced = os.getenv("DEEPCAMERA_DEVICE", "").strip().lower()
+
+        if forced:
+            return forced
+
+        try:
+            import torch
+
+            if platform.system() == "Darwin" and torch.backends.mps.is_available():
+                return "mps"
+
+            if torch.cuda.is_available():
+                return "cuda"
+
+        except Exception:
+            pass
+
+        return "cpu"
+
+    def _load_model(self) -> None:
+        try:
+            from ultralytics import YOLO
+        except Exception as exc:
+            self.last_error = (
+                "Ultralytics is not installed. "
+                "Run: pip install -U ultralytics"
+            )
+            print(f"[ERROR] {self.last_error} ({exc})")
+            return
+
+        try:
+            self.device = self._select_device()
+
+            requested = Path(
+                os.path.expanduser(self.model_path)
+            )
+
+            # Prefer a project-local model if the supplied path exists.
+            # Otherwise allow Ultralytics to download the official YOLO26
+            # checkpoint by name.
+            model_source = (
+                str(requested)
+                if requested.exists()
+                else self.model_path
+            )
+
+            self.model = YOLO(model_source)
+            self.model_kind = "YOLO26"
+
+            print(
+                "[INFO] Local DeepCamera detection engine ready: "
+                f"{self.model_path}"
+            )
+            print(
+                "[INFO] Detection device: "
+                f"{self.device}"
+            )
+            print(
+                "[INFO] Inference: "
+                f"{self.imgsz}px | confidence={self.confidence:.2f} | "
+                f"FPS governor={self.fps:g}"
+            )
+
+            self.last_error = ""
+
+        except Exception as exc:
+            self.model = None
+            self.model_kind = None
+            self.last_error = f"YOLO26 model load failed: {exc}"
+            print(f"[ERROR] {self.last_error}")
+
+    # ============================================================
+    # DETECTION
+    # ============================================================
+
+    def _predict(self, frame) -> List[Dict[str, Any]]:
+        if self.model is None:
+            return []
+
+        kwargs = {
+            "source": frame,
+            "conf": self.confidence,
+            "iou": self.iou,
+            "imgsz": self.imgsz,
+            "max_det": self.max_det,
+            "verbose": False,
+        }
+
+        # Explicit class filtering is optional. None/empty means all
+        # classes supported by the selected YOLO26 checkpoint.
+        if self.classes:
+            names = getattr(self.model, "names", {}) or {}
+            requested = {
+                str(value).strip().lower()
+                for value in self.classes
+            }
+
+            class_ids = [
+                int(class_id)
+                for class_id, name in names.items()
+                if str(name).strip().lower() in requested
+            ]
+
+            if class_ids:
+                kwargs["classes"] = class_ids
+
+        if self.device in {"mps", "cuda"}:
+            kwargs["device"] = self.device
+        else:
+            kwargs["device"] = "cpu"
+
+        results = self.model.predict(**kwargs)
+
+        if not results:
+            return []
+
+        result = results[0]
+        boxes = getattr(result, "boxes", None)
+
+        if boxes is None:
+            return []
+
+        names = getattr(result, "names", None)
+        if names is None:
+            names = getattr(self.model, "names", {}) or {}
+
+        objects = []
+
+        try:
+            xyxy = boxes.xyxy.cpu().numpy()
+            confs = boxes.conf.cpu().numpy()
+            class_ids = boxes.cls.cpu().numpy().astype(int)
+        except Exception:
+            return []
+
+        for box, score, class_id in zip(
+            xyxy,
+            confs,
+            class_ids,
+        ):
+            x1, y1, x2, y2 = map(int, box)
+
+            if x2 <= x1 or y2 <= y1:
+                continue
+
+            if isinstance(names, dict):
+                label = names.get(int(class_id), str(class_id))
+            else:
+                label = (
+                    names[int(class_id)]
+                    if 0 <= int(class_id) < len(names)
+                    else str(class_id)
+                )
+
+            objects.append(
+                {
+                    "class_name": _clean_label(label),
+                    "confidence": _clamp(float(score), 0.0, 1.0),
+                    "bbox": [x1, y1, x2, y2],
+                    "classification_source": "AI-Camera-Tracker-YOLO26",
+                    "raw_class_name": _clean_label(label),
+                    "raw_confidence": float(score),
+                    "verified": False,
+                }
+            )
+
+        return objects
+
+    # ============================================================
+    # TEMPORAL + IOU TRACKING
+    # ============================================================
+
+    def _match_tracks(self, objects: List[Dict[str, Any]]) -> None:
+        now = time.monotonic()
+        unmatched_tracks = set(self.tracks.keys())
+        assignments = []
+
+        # Greedy highest-IoU matching.
+        candidates = []
+
+        for obj_index, obj in enumerate(objects):
+            for track_id, track in self.tracks.items():
+                overlap = _iou(obj["bbox"], track.bbox)
+
+                if overlap >= self.track_iou:
+                    same_class = (
+                        obj["class_name"].lower()
+                        == track.class_name.lower()
+                    )
+                    score = overlap + (0.10 if same_class else 0.0)
+                    candidates.append(
+                        (score, obj_index, track_id)
+                    )
+
+        candidates.sort(reverse=True)
+
+        used_objects = set()
+
+        for _, obj_index, track_id in candidates:
+            if obj_index in used_objects:
+                continue
+            if track_id not in unmatched_tracks:
+                continue
+
+            obj = objects[obj_index]
+            track = self.tracks[track_id]
+
+            obj["track_id"] = track_id
+            track.bbox = list(obj["bbox"])
+            track.class_name = obj["class_name"]
+            track.confidence = float(obj["confidence"])
+            track.last_seen = now
+            track.missed = 0
+
+            used_objects.add(obj_index)
+            unmatched_tracks.discard(track_id)
+            assignments.append((obj_index, track_id))
+
+        # Create new tracks for unmatched detections.
+        for obj_index, obj in enumerate(objects):
+            if obj_index in used_objects:
+                continue
+
+            track_id = self.next_track_id
+            self.next_track_id += 1
+
+            self.tracks[track_id] = _ObjectTrack(
+                track_id,
+                obj,
+            )
+
+            self.histories[track_id] = deque(
+                maxlen=self.temporal_window
+            )
+
+            obj["track_id"] = track_id
+
+        # Age unmatched existing tracks.
+        for track_id in list(unmatched_tracks):
+            track = self.tracks.get(track_id)
+            if track is None:
+                continue
+
+            track.missed += 1
+
+            if track.missed > self.max_missed:
+                self.tracks.pop(track_id, None)
+                self.histories.pop(track_id, None)
+
+        # Update temporal history and expose confirmation metadata.
+        for obj in objects:
+            track_id = obj.get("track_id")
+            if track_id is None:
+                continue
+
+            history = self.histories.setdefault(
+                track_id,
+                deque(maxlen=self.temporal_window),
+            )
+
+            history.append(
+                {
+                    "class_name": obj["class_name"].lower(),
+                    "bbox": list(obj["bbox"]),
+                    "confidence": float(obj["confidence"]),
+                    "timestamp": now,
+                }
+            )
+
+            same_class_hits = sum(
+                1
+                for item in history
+                if item["class_name"]
+                == obj["class_name"].lower()
+            )
+
+            obj["temporal_hits"] = same_class_hits
+            obj["temporal_confirmed"] = (
+                same_class_hits >= self.temporal_hits_required
+            )
+
+        # A new object is shown immediately for responsive UI, but
+        # temporal confirmation is available to the application for
+        # event/security decisions.
+        for obj in objects:
+            if "track_id" not in obj:
+                obj["track_id"] = None
+
+            obj["center"] = [
+                int((obj["bbox"][0] + obj["bbox"][2]) / 2),
+                int((obj["bbox"][1] + obj["bbox"][3]) / 2),
+            ]
+
+    # ============================================================
+    # PUBLIC API
+    # ============================================================
 
     def detect(self, frame, timestamp_ms=None):
-        objects = self._deepcamera.detect(frame)
+        if frame is None:
+            return list(self.last_objects)
 
-        # Preserve existing functionality if DeepCamera is temporarily
-        # unavailable, but never replace DeepCamera as the primary path.
-        if not objects and self.fallback is not None:
+        now = time.monotonic()
+
+        # Frame governor: keep the camera/UI loop responsive.
+        if (
+            self.last_detection_time
+            and now - self.last_detection_time < self.min_interval
+        ):
+            return list(self.last_objects)
+
+        self.last_detection_time = now
+        self.total_frames += 1
+
+        start = time.perf_counter()
+
+        try:
+            objects = self._predict(frame)
+            self.last_inference_ms = (
+                time.perf_counter() - start
+            ) * 1000.0
+
+            if objects:
+                self._match_tracks(objects)
+                self.last_objects = objects
+                self.total_detections += len(objects)
+                self.last_error = ""
+                return list(objects)
+
+            # If the YOLO26 engine is healthy but there are genuinely
+            # no detections, return an empty list instead of invoking
+            # the legacy detector unnecessarily.
+            if self.model is not None:
+                self.last_objects = []
+                return []
+
+        except Exception as exc:
+            self.last_error = str(exc)
+            print(
+                "[WARNING] Local YOLO26 inference failed: "
+                f"{exc}"
+            )
+
+        # Backward compatibility only: the existing application's
+        # detector can still protect the rest of the monitoring
+        # pipeline if this new engine cannot run.
+        if self.fallback is not None:
             try:
                 objects = self.fallback.detect(frame)
+
                 for obj in objects:
                     obj.setdefault(
                         "classification_source",
                         "legacy-fallback",
                     )
-            except Exception:
-                objects = []
 
-        return objects
+                self.last_objects = list(objects)
+                return list(objects)
 
-    def status(self):
-        return self._deepcamera.status()
+            except Exception as exc:
+                self.last_error = (
+                    f"{self.last_error}; fallback failed: {exc}"
+                )
+
+        return list(self.last_objects)
+
+    def status(self) -> str:
+        if self.model is None:
+            return "YOLO26: OFFLINE"
+
+        if self.last_error:
+            return "YOLO26: ERROR"
+
+        return (
+            "YOLO26: ACTIVE | "
+            f"{self.device.upper()} | "
+            f"{self.fps:g} FPS"
+        )
+
+    def stats(self) -> Dict[str, Any]:
+        return {
+            "engine": "YOLO26",
+            "device": self.device,
+            "model": self.model_path,
+            "confidence": self.confidence,
+            "imgsz": self.imgsz,
+            "max_det": self.max_det,
+            "fps": self.fps,
+            "inference_ms": round(self.last_inference_ms, 2),
+            "frames_processed": self.total_frames,
+            "detections": self.total_detections,
+            "tracks": len(self.tracks),
+            "temporal_hits_required": self.temporal_hits_required,
+        }
 
     def close(self):
-        self._deepcamera.close()
+        self.model = None
+        self.tracks.clear()
+        self.histories.clear()
+        self.last_objects = []
 
 
 __all__ = ["DeepCameraDetector"]
