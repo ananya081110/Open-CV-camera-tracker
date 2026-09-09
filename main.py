@@ -17,6 +17,8 @@ from tracker import CentroidTracker
 from deepcamera_adapter import DeepCameraDetector
 from security_alerts import SecurityAlertManager
 from camera_control import load_camera_control
+from retail_sales_intelligence import RetailSalesIntelligence
+from retail_interaction_bridge import InteractionTrackerBridge
 
 
 # ============================================================
@@ -2262,18 +2264,8 @@ def main():
     )
 
     # --------------------------------------------------------
-    # DEEPCAMERA OBJECT DETECTOR
+    # LOCAL DEEPCAMERA-STYLE YOLO26 DETECTOR
     # --------------------------------------------------------
-    # DeepCamera's current detection skill uses YOLO 2026/YOLO26
-    # and communicates detections as JSON objects.  We keep the
-    # existing detector as a safety fallback so none of the current
-    # monitoring features stop working if the YOLO26 model is not
-    # available locally.
-    # --------------------------------------------------------
-
-    print(
-        "[INFO] Loading DeepCamera object detector..."
-    )
 
     object_detector = DeepCameraDetector(
         model_path=cfg(
@@ -2299,19 +2291,11 @@ def main():
         max_det=cfg(
             "DEEPCAMERA_MAX_DET",
             300
-        ),
-        vlm_url=cfg(
-            "DEEPCAMERA_VLM_URL",
-            None
-        ),
-        vlm_model=cfg(
-            "DEEPCAMERA_VLM_MODEL",
-            "qwen3-vl:8b"
         )
     )
 
     print(
-        "[INFO] Project-local YOLO26 object detection engine connected."
+        "[INFO] Local YOLO26 / DeepCamera-style detector ready."
     )
 
     # --------------------------------------------------------
@@ -2365,6 +2349,23 @@ def main():
         "[INFO] Predictive subject "
         "tracking ready."
     )
+
+    # --------------------------------------------------------
+    # RETAIL SALES INTELLIGENCE
+    # --------------------------------------------------------
+
+    retail_intelligence = RetailSalesIntelligence(
+        dwell_threshold=cfg("RETAIL_DWELL_THRESHOLD", 60),
+        high_intent_threshold=cfg(
+            "RETAIL_HIGH_INTENT_THRESHOLD",
+            7
+        )
+    )
+
+    interaction_tracker = InteractionTrackerBridge()
+
+    print("[INFO] Retail sales intelligence ready.")
+    print(f"[INFO] {interaction_tracker.status()}")
 
     # --------------------------------------------------------
     # Camera access control + automatic trigger
@@ -2592,9 +2593,101 @@ def main():
                 visible_objects
             )
 
+            # =================================================
+            # RETAIL SALES INTELLIGENCE
+            # =================================================
+
+            interaction_results = interaction_tracker.update(
+                tracks=tracks,
+                objects=object_detections,
+                frame=frame,
+                now=now,
+            )
+
+            interaction_flags = {
+                int(person_id): bool(
+                    data.get("product_interaction", False)
+                )
+                for person_id, data in interaction_results.items()
+            }
+
+            phone_flags = {
+                int(person_id): bool(
+                    data.get("phone_comparison", False)
+                )
+                for person_id, data in interaction_results.items()
+            }
+
+            # Staff identification is not guessed until the CCTV
+            # requirements define how staff are identified.
+            staff_flags = {
+                int(track.id): None
+                for track in tracks
+                if not track.missed
+            }
+
+            retail_insights, retail_alerts = (
+                retail_intelligence.update(
+                    tracks=tracks,
+                    width=w,
+                    height=h,
+                    now=now,
+                    interactions=interaction_flags,
+                    phone_comparison=phone_flags,
+                    staff_nearby=staff_flags,
+                )
+            )
+
+            retail_intelligence.zone_overlay(frame)
+
+            for insight in retail_insights:
+                current_track = next(
+                    (
+                        track for track in tracks
+                        if not track.missed
+                        and int(track.id) == insight.person_id
+                    ),
+                    None,
+                )
+
+                if current_track is None:
+                    continue
+
+                cx, cy = map(int, current_track.center)
+
+                cv2.putText(
+                    frame,
+                    (
+                        f"SALES {insight.intent_level} | "
+                        f"{insight.zone} | "
+                        f"{int(insight.dwell_seconds)}s | "
+                        f"Score {insight.intent_score}"
+                    )[:110],
+                    (
+                        max(10, cx - 110),
+                        max(25, cy - 38),
+                    ),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.45,
+                    (0, 255, 255),
+                    2,
+                    cv2.LINE_AA,
+                )
+
+            for insight in retail_alerts:
+                capture_and_log(
+                    frame,
+                    insight.person_id,
+                    "HIGH_INTENT_CUSTOMER",
+                    insight.intent_level.lower(),
+                    insight.alert or "High-intent customer detected.",
+                    "retail_sales",
+                )
+
+
             cv2.putText(
                 frame,
-                "Object AI: YOLO26",
+                "Retail AI: YOLO26 + customer intent intelligence",
                 (
                     20,
                     135
@@ -2604,24 +2697,6 @@ def main():
                 (
                     255,
                     200,
-                    0
-                ),
-                2,
-                cv2.LINE_AA
-            )
-
-            cv2.putText(
-                frame,
-                object_detector.status(),
-                (
-                    20,
-                    155
-                ),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.48,
-                (
-                    0,
-                    255,
                     0
                 ),
                 2,
@@ -3782,6 +3857,11 @@ def main():
                 pass
 
         detector.close()
+
+        try:
+            interaction_tracker.close()
+        except Exception:
+            pass
 
         try:
             object_detector.close()
