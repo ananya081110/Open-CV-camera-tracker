@@ -1,5 +1,5 @@
 """
-Local DeepCamera-style object detection engine for AI Camera Tracker.
+Project-local YOLO26 object detection engine for AI Camera Tracker.
 
 This module is self-contained inside the AI Camera Tracker project.
 It does NOT import, clone, launch, or depend on the SharpAI/DeepCamera
@@ -88,13 +88,13 @@ class _ObjectTrack:
 
 class DeepCameraDetector:
     """
-    Project-local DeepCamera-style detection engine.
+    Project-local YOLO26 detection engine.
 
     The class name is retained so the existing application does not
-    need a broad refactor. Internally, this is now YOUR detector:
+    need a broad refactor. Internally, this is your detector:
     YOLO26 + frame governor + temporal confirmation + IoU tracking.
 
-    No SharpAI/DeepCamera repository is required at runtime.
+    No external DeepCamera repository is required at runtime.
     """
 
     def __init__(
@@ -106,8 +106,6 @@ class DeepCameraDetector:
         fallback=None,
         imgsz=640,
         max_det=300,
-        vlm_url=None,
-        vlm_model="qwen3-vl:8b",
         fps=5,
         temporal_hits=2,
         temporal_window=3,
