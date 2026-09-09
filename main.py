@@ -19,6 +19,7 @@ from security_alerts import SecurityAlertManager
 from camera_control import load_camera_control
 from retail_sales_intelligence import RetailSalesIntelligence
 from retail_interaction_bridge import InteractionTrackerBridge
+from retail_notification_service import RetailNotificationService
 
 
 # ============================================================
@@ -339,6 +340,76 @@ ALERT_COOLDOWN_SECONDS = cfg(
     "ALERT_COOLDOWN_SECONDS",
     10
 )
+
+# ============================================================
+# RETAIL STORE SETTINGS
+# ============================================================
+
+RETAIL_CAMERA_ID = str(
+    cfg(
+        "RETAIL_CAMERA_ID",
+        "CAM_TEST_01"
+    )
+)
+
+# Comma-separated persistent tracker IDs that are registered
+# as staff for the current camera during the POC.
+#
+# Example:
+# RETAIL_STAFF_IDS=1,4
+#
+# IMPORTANT:
+# An ordinary detected person is NEVER assumed to be staff.
+def load_retail_staff_ids():
+    raw = str(
+        cfg(
+            "RETAIL_STAFF_IDS",
+            ""
+        )
+    ).strip()
+
+    if not raw:
+        return set()
+
+    result = set()
+
+    for item in raw.split(","):
+        item = item.strip()
+
+        if not item:
+            continue
+
+        try:
+            result.add(int(item))
+        except ValueError:
+            continue
+
+    return result
+
+
+RETAIL_STAFF_IDS = load_retail_staff_ids()
+
+RETAIL_STAFF_DISTANCE_PX = float(
+    cfg(
+        "RETAIL_STAFF_DISTANCE_PX",
+        180
+    )
+)
+
+RETAIL_UNATTENDED_CONFIRM_SECONDS = float(
+    cfg(
+        "RETAIL_UNATTENDED_CONFIRM_SECONDS",
+        10
+    )
+)
+
+RETAIL_ALERT_COOLDOWN_SECONDS = float(
+    cfg(
+        "RETAIL_ALERT_COOLDOWN_SECONDS",
+        120
+    )
+)
+
 
 SITTING_DWELL_SECONDS = cfg(
     "SITTING_DWELL_SECONDS",
@@ -2223,6 +2294,118 @@ def draw_object_summary(
 
 
 # ============================================================
+# RETAIL STAFF / ATTENDANCE HELPERS
+# ============================================================
+
+def retail_staff_near_customer(
+    customer_track,
+    tracks,
+    staff_ids,
+    max_distance_px=180.0
+):
+    """
+    Determine whether a registered staff member is close enough
+    to the customer to count as attended.
+
+    Returns:
+        True  -> registered staff nearby
+        False -> registered staff not nearby
+        None  -> no staff registry configured
+
+    We intentionally do NOT treat an arbitrary detected person
+    as staff.
+    """
+
+    if not staff_ids:
+        return None
+
+    customer_id = int(customer_track.id)
+
+    for staff_track in tracks:
+        if getattr(staff_track, "missed", 0):
+            continue
+
+        staff_id = int(staff_track.id)
+
+        if staff_id not in staff_ids:
+            continue
+
+        if staff_id == customer_id:
+            continue
+
+        try:
+            d = distance(
+                customer_track.center,
+                staff_track.center
+            )
+        except Exception:
+            continue
+
+        if d <= max_distance_px:
+            return True
+
+    return False
+
+
+def retail_staff_alert_message(
+    insight,
+    camera_id
+):
+    dwell_seconds = int(
+        max(
+            0,
+            insight.dwell_seconds
+        )
+    )
+
+    minutes = dwell_seconds // 60
+    seconds = dwell_seconds % 60
+
+    dwell = (
+        f"{minutes}m {seconds}s"
+        if minutes
+        else f"{seconds}s"
+    )
+
+    return (
+        "🚨 CUSTOMER ASSISTANCE REQUIRED\n\n"
+        f"📍 Section: {insight.zone}\n"
+        f"📹 Camera: {camera_id}\n"
+        f"👤 Customer: #{insight.person_id}\n"
+        f"⏱️ Dwell time: {dwell}\n"
+        f"🎯 Intent score: {insight.intent_score}\n\n"
+        "⚠️ High-intent customer appears to be "
+        "unattended.\n\n"
+        "👉 Please send a sales associate to assist "
+        "the customer."
+    )
+
+
+def retail_draw_unattended(
+    frame,
+    track,
+    insight
+):
+    cx, cy = map(
+        int,
+        track.center
+    )
+
+    cv2.putText(
+        frame,
+        "UNATTENDED - STAFF REQUIRED",
+        (
+            max(10, cx - 120),
+            max(25, cy - 62)
+        ),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.48,
+        (0, 0, 255),
+        2,
+        cv2.LINE_AA
+    )
+
+# ============================================================
 # MAIN
 # ============================================================
 
@@ -2355,7 +2538,10 @@ def main():
     # --------------------------------------------------------
 
     retail_intelligence = RetailSalesIntelligence(
-        dwell_threshold=cfg("RETAIL_DWELL_THRESHOLD", 60),
+        dwell_threshold=cfg(
+            "RETAIL_DWELL_THRESHOLD",
+            60
+        ),
         high_intent_threshold=cfg(
             "RETAIL_HIGH_INTENT_THRESHOLD",
             7
@@ -2363,9 +2549,113 @@ def main():
     )
 
     interaction_tracker = InteractionTrackerBridge()
+    retail_notifications = RetailNotificationService()
 
-    print("[INFO] Retail sales intelligence ready.")
-    print(f"[INFO] {interaction_tracker.status()}")
+    print(
+        "[INFO] Retail sales intelligence ready."
+    )
+
+    print(
+        f"[INFO] {interaction_tracker.status()}"
+    )
+
+    print(
+        f"[INFO] Retail camera ID: "
+        f"{RETAIL_CAMERA_ID}"
+    )
+
+    if RETAIL_STAFF_IDS:
+        print(
+            "[INFO] Registered retail staff IDs: "
+            f"{sorted(RETAIL_STAFF_IDS)}"
+        )
+    else:
+        print(
+            "[INFO] Retail staff registry: "
+            "not configured; staff status remains UNKNOWN."
+        )
+
+    print(
+        f"[INFO] {retail_notifications.status()}"
+    )
+
+    # --------------------------------------------------------
+    # Camera access control + automatic trigger
+    # --------------------------------------------------------
+
+    # --------------------------------------------------------
+    # Camera access control + automatic trigger
+    # --------------------------------------------------------
+
+    camera_state = load_camera_control()
+    cap = None
+
+    def open_camera():
+        nonlocal cap
+
+        if cap is not None and cap.isOpened():
+            return True
+
+        camera_index = int(
+            camera_state.get(
+                "camera_index",
+                CAMERA_INDEX
+            )
+        )
+
+        cap = cv2.VideoCapture(
+            camera_index
+        )
+
+        if not cap.isOpened():
+            try:
+                cap.release()
+            except Exception:
+                pass
+
+            cap = None
+
+            print(
+                "[WARNING] Camera could not be opened. "
+                "Will retry automatically."
+            )
+
+            return False
+
+        cap.set(
+            cv2.CAP_PROP_FRAME_WIDTH,
+            FRAME_WIDTH
+        )
+
+        cap.set(
+            cv2.CAP_PROP_FRAME_HEIGHT,
+            FRAME_HEIGHT
+        )
+
+        print(
+            f"[INFO] Camera started automatically "
+            f"(index={camera_index})."
+        )
+
+        return True
+
+    if (
+        camera_state.get(
+            "camera_allowed",
+            True
+        )
+        and
+        camera_state.get(
+            "auto_start",
+            True
+        )
+    ):
+        open_camera()
+    else:
+        print(
+            "[INFO] Camera is waiting for "
+            "administrator permission/trigger."
+        )
 
     # --------------------------------------------------------
     # Camera access control + automatic trigger
@@ -2594,7 +2884,7 @@ def main():
             )
 
             # =================================================
-            # RETAIL SALES INTELLIGENCE
+            # RETAIL STORE INTELLIGENCE
             # =================================================
 
             interaction_results = interaction_tracker.update(
@@ -2606,25 +2896,44 @@ def main():
 
             interaction_flags = {
                 int(person_id): bool(
-                    data.get("product_interaction", False)
+                    data.get(
+                        "product_interaction",
+                        False
+                    )
                 )
-                for person_id, data in interaction_results.items()
+                for person_id, data
+                in interaction_results.items()
             }
 
             phone_flags = {
                 int(person_id): bool(
-                    data.get("phone_comparison", False)
+                    data.get(
+                        "phone_comparison",
+                        False
+                    )
                 )
-                for person_id, data in interaction_results.items()
+                for person_id, data
+                in interaction_results.items()
             }
 
-            # Staff identification is not guessed until the CCTV
-            # requirements define how staff are identified.
-            staff_flags = {
-                int(track.id): None
-                for track in tracks
-                if not track.missed
-            }
+            # Staff is determined ONLY from explicitly registered
+            # staff tracker IDs. An arbitrary person is never
+            # assumed to be staff.
+            staff_flags = {}
+
+            for track in tracks:
+
+                if track.missed:
+                    continue
+
+                staff_flags[int(track.id)] = (
+                    retail_staff_near_customer(
+                        track,
+                        tracks,
+                        RETAIL_STAFF_IDS,
+                        RETAIL_STAFF_DISTANCE_PX
+                    )
+                )
 
             retail_insights, retail_alerts = (
                 retail_intelligence.update(
@@ -2638,67 +2947,157 @@ def main():
                 )
             )
 
-            retail_intelligence.zone_overlay(frame)
+            retail_intelligence.zone_overlay(
+                frame
+            )
+
+            # -------------------------------------------------
+            # Customer overlays
+            # -------------------------------------------------
 
             for insight in retail_insights:
+
                 current_track = next(
                     (
-                        track for track in tracks
+                        track
+                        for track in tracks
                         if not track.missed
-                        and int(track.id) == insight.person_id
+                        and int(track.id)
+                        == insight.person_id
                     ),
-                    None,
+                    None
                 )
 
                 if current_track is None:
                     continue
 
-                cx, cy = map(int, current_track.center)
+                cx, cy = map(
+                    int,
+                    current_track.center
+                )
+
+                sales_label = (
+                    f"SALES {insight.intent_level} | "
+                    f"{insight.zone} | "
+                    f"{int(insight.dwell_seconds)}s | "
+                    f"Score {insight.intent_score}"
+                )
 
                 cv2.putText(
                     frame,
-                    (
-                        f"SALES {insight.intent_level} | "
-                        f"{insight.zone} | "
-                        f"{int(insight.dwell_seconds)}s | "
-                        f"Score {insight.intent_score}"
-                    )[:110],
+                    sales_label[:110],
                     (
                         max(10, cx - 110),
-                        max(25, cy - 38),
+                        max(25, cy - 38)
                     ),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.45,
                     (0, 255, 255),
                     2,
-                    cv2.LINE_AA,
+                    cv2.LINE_AA
                 )
 
+                # Explicit unattended state.
+                if (
+                    insight.intent_level == "HIGH"
+                    and
+                    insight.staff_nearby is False
+                ):
+                    retail_draw_unattended(
+                        frame,
+                        current_track,
+                        insight
+                    )
+
+            # -------------------------------------------------
+            # High-intent customer events
+            # -------------------------------------------------
+
             for insight in retail_alerts:
+
                 capture_and_log(
                     frame,
                     insight.person_id,
                     "HIGH_INTENT_CUSTOMER",
                     insight.intent_level.lower(),
-                    insight.alert or "High-intent customer detected.",
-                    "retail_sales",
+                    insight.alert
+                    or
+                    "High-intent customer detected.",
+                    "retail_sales"
                 )
 
+            # -------------------------------------------------
+            # Dedicated unattended-customer notification
+            #
+            # The existing retail module can generate a high-intent
+            # alert. Here we add the operational action:
+            # notify staff when staff absence is CONFIRMED.
+            # -------------------------------------------------
+
+            for insight in retail_insights:
+
+                if (
+                    insight.intent_level != "HIGH"
+                    or
+                    insight.staff_nearby is not False
+                ):
+                    continue
+
+                current_track = next(
+                    (
+                        track
+                        for track in tracks
+                        if not track.missed
+                        and int(track.id)
+                        == insight.person_id
+                    ),
+                    None
+                )
+
+                if current_track is None:
+                    continue
+
+                # Only send the staff alert when the retail engine
+                # has already generated its high-intent alert.
+                # This prevents a second alert every frame.
+                if (
+                    insight.alert
+                    and
+                    insight.staff_nearby is False
+                ):
+
+                    message = retail_staff_alert_message(
+                        insight,
+                        RETAIL_CAMERA_ID
+                    )
+
+                    retail_notifications.send_staff_alert(
+                        message
+                    )
+
+                    capture_and_log(
+                        frame,
+                        insight.person_id,
+                        "UNATTENDED_CUSTOMER",
+                        "customer_unattended",
+                        message,
+                        "retail_sales"
+                    )
 
             cv2.putText(
                 frame,
-                "Retail AI: YOLO26 + customer intent intelligence",
+                (
+                    "Retail AI: "
+                    "Customer Intent + "
+                    "Staff Assistance"
+                ),
                 (
                     20,
                     135
                 ),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.48,
-                (
-                    255,
-                    200,
-                    0
-                ),
+                (255, 200, 0),
                 2,
                 cv2.LINE_AA
             )
