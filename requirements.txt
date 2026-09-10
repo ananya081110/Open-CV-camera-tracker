@@ -4,3 +4,6 @@ numpy
 opencv-python-headless
 ultralytics 
 werkzeug
+fastapi
+uvicorn
+pydantic
