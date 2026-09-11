@@ -1,24 +1,22 @@
 import csv
+import json
 import math
+import os
 import time
 from collections import deque
 from datetime import datetime
 from pathlib import Path
 
+import cv2
+import numpy as np
+
+import config
 import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-INTEGRATION_DIR = Path(__file__).resolve().parent
-
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-if str(INTEGRATION_DIR) not in sys.path:
-    sys.path.insert(0, str(INTEGRATION_DIR))
-
-import cv2
-import numpy as np
-import config
 
 
 from database import init_db
@@ -31,6 +29,7 @@ from security_alerts import SecurityAlertManager
 from camera_control import load_camera_control
 from retail_sales_intelligence import RetailSalesIntelligence
 from retail_interaction_bridge import InteractionTrackerBridge
+from store_intelligence import StoreIntelligence
 from retail_notification_service import RetailNotificationService
 from retail_live_state import LIVE_STATE
 from retail_live_api import start_live_api
@@ -294,7 +293,7 @@ class PredictiveSubjectTracker:
 # PATHS
 # ============================================================
 
-ROOT = PROJECT_ROOT
+ROOT = Path(__file__).resolve().parent
 
 LOG_DIR = ROOT / "logs"
 ALERT_DIR = ROOT / "alerts"
@@ -417,6 +416,47 @@ RETAIL_UNATTENDED_CONFIRM_SECONDS = float(
         10
     )
 )
+
+# ============================================================
+# STORE-WIDE RETAIL ZONES
+# ============================================================
+
+DEFAULT_STORE_ZONES = {
+    "Entrance": (0.00, 0.00, 0.25, 1.00),
+    "Mobile": (0.25, 0.10, 0.45, 0.90),
+    "TV": (0.45, 0.20, 0.65, 0.90),
+    "Laptop": (0.65, 0.10, 0.82, 0.90),
+    "Accessories": (0.82, 0.10, 1.00, 0.70),
+    "Billing": (0.70, 0.70, 1.00, 1.00),
+    "Demo Area": (0.40, 0.00, 0.70, 0.25),
+}
+
+
+def load_store_zones():
+    raw = str(cfg("STORE_ZONES_JSON", "")).strip()
+    if not raw:
+        return dict(DEFAULT_STORE_ZONES)
+
+    try:
+        parsed = json.loads(raw)
+        if not isinstance(parsed, dict):
+            raise ValueError("STORE_ZONES_JSON must be a JSON object.")
+
+        zones = {}
+        for name, box in parsed.items():
+            if isinstance(box, (list, tuple)) and len(box) == 4:
+                zones[str(name)] = tuple(float(v) for v in box)
+
+        return zones or dict(DEFAULT_STORE_ZONES)
+    except (TypeError, ValueError, json.JSONDecodeError) as exc:
+        print(
+            "[WARNING] Invalid STORE_ZONES_JSON; "
+            f"using default retail zones: {exc}"
+        )
+        return dict(DEFAULT_STORE_ZONES)
+
+
+STORE_ZONES = load_store_zones()
 
 RETAIL_ALERT_COOLDOWN_SECONDS = float(
     cfg(
@@ -2552,6 +2592,30 @@ def main():
     # RETAIL SALES INTELLIGENCE
     # --------------------------------------------------------
 
+    # --------------------------------------------------------
+    # STORE-WIDE RETAIL INTELLIGENCE
+    # --------------------------------------------------------
+
+    store_intelligence = StoreIntelligence(
+        dwell_threshold=cfg("STORE_DWELL_THRESHOLD", 60),
+        high_intent_score=cfg("STORE_HIGH_INTENT_SCORE", 7),
+        staff_distance=cfg(
+            "STORE_STAFF_DISTANCE",
+            RETAIL_STAFF_DISTANCE_PX,
+        ),
+        unattended_confirmation=cfg(
+            "STORE_UNATTENDED_CONFIRMATION",
+            RETAIL_UNATTENDED_CONFIRM_SECONDS,
+        ),
+        alert_cooldown=cfg("STORE_ALERT_COOLDOWN", 120),
+    )
+
+    store_intelligence.add_camera(
+        camera_id=RETAIL_CAMERA_ID,
+        source=str(cfg("CAMERA_SOURCE", "webcam")),
+        zones=STORE_ZONES,
+    )
+
     retail_intelligence = RetailSalesIntelligence(
         dwell_threshold=cfg(
             "RETAIL_DWELL_THRESHOLD",
@@ -2568,6 +2632,14 @@ def main():
 
     print(
         "[INFO] Retail sales intelligence ready."
+    )
+    print(
+        "[INFO] Store intelligence ready."
+    )
+
+    print(
+        f"[INFO] Retail zones: "
+        f"{list(STORE_ZONES.keys())}"
     )
 
     print(
@@ -2610,6 +2682,10 @@ def main():
     except Exception as exc:
         print(f"[WARNING] Live API unavailable: {exc}")
 
+
+    # --------------------------------------------------------
+    # Camera access control + automatic trigger
+    # --------------------------------------------------------
 
     # --------------------------------------------------------
     # Camera access control + automatic trigger
@@ -2965,6 +3041,112 @@ def main():
                     )
                 )
 
+            # =================================================
+            # STORE-WIDE CUSTOMER JOURNEY + INTENT
+            # =================================================
+
+            store_customer_journeys = []
+            store_staff_alerts = []
+
+            for track in tracks:
+
+                if track.missed:
+                    continue
+
+                try:
+                    customer_id = int(track.id)
+                except (
+                    TypeError,
+                    ValueError,
+                    AttributeError,
+                ):
+                    continue
+
+                center = getattr(track, "center", None)
+                if center is None:
+                    continue
+
+                zone = store_intelligence.find_zone(
+                    RETAIL_CAMERA_ID,
+                    center,
+                    w,
+                    h,
+                )
+
+                if zone is None:
+                    continue
+
+                interaction_data = interaction_results.get(
+                    customer_id,
+                    {},
+                )
+
+                customer, store_alert = (
+                    store_intelligence.update_customer(
+                        customer_id=customer_id,
+                        camera_id=RETAIL_CAMERA_ID,
+                        zone=zone,
+                        now=now,
+                        product_interaction=bool(
+                            interaction_data.get(
+                                "product_interaction",
+                                False,
+                            )
+                        ),
+                        phone_comparison=bool(
+                            interaction_data.get(
+                                "phone_comparison",
+                                False,
+                            )
+                        ),
+                        staff_nearby=staff_flags.get(
+                            customer_id,
+                        ),
+                    )
+                )
+
+                store_customer_journeys.append({
+                    "customer_id": customer.customer_id,
+                    "camera_id": customer.camera_id,
+                    "zone": customer.zone,
+                    "zone_history": list(
+                        customer.zone_history
+                    ),
+                    "zone_dwell": dict(
+                        customer.zone_dwell
+                    ),
+                    "total_store_dwell": round(
+                        customer.total_store_dwell,
+                        1,
+                    ),
+                    "intent_score": customer.intent_score,
+                    "intent_level": customer.intent_level,
+                    "product_interaction": (
+                        customer.product_interaction
+                    ),
+                    "phone_comparison": (
+                        customer.phone_comparison
+                    ),
+                    "repeat_visit": customer.repeat_visit,
+                    "staff_nearby": customer.staff_nearby,
+                })
+
+                if store_alert is not None:
+                    store_staff_alerts.append(store_alert)
+
+                    capture_and_log(
+                        frame,
+                        customer.customer_id,
+                        "UNATTENDED_CUSTOMER",
+                        customer.intent_level.lower(),
+                        store_alert.message,
+                        "retail_sales",
+                    )
+
+            store_analytics = (
+                store_intelligence.store_analytics()
+            )
+
             retail_insights, retail_alerts = (
                 retail_intelligence.update(
                     tracks=tracks,
@@ -2980,6 +3162,71 @@ def main():
             retail_intelligence.zone_overlay(
                 frame
             )
+
+            # -------------------------------------------------
+            # Retail customer journey overlays
+            # -------------------------------------------------
+
+            for journey in store_customer_journeys:
+
+                customer_id = journey["customer_id"]
+
+                current_track = next(
+                    (
+                        track
+                        for track in tracks
+                        if not track.missed
+                        and int(track.id) == customer_id
+                    ),
+                    None,
+                )
+
+                if current_track is None:
+                    continue
+
+                cx, cy = map(
+                    int,
+                    current_track.center,
+                )
+
+                history = journey["zone_history"]
+                path = " -> ".join(history[-4:])
+
+                journey_label = (
+                    f"C-{customer_id:03d} | "
+                    f"{journey['zone']} | "
+                    f"{journey['intent_level']} "
+                    f"{journey['intent_score']}"
+                )
+
+                cv2.putText(
+                    frame,
+                    journey_label[:90],
+                    (
+                        max(10, cx - 100),
+                        max(25, cy - 55),
+                    ),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.42,
+                    (255, 255, 0),
+                    1,
+                    cv2.LINE_AA,
+                )
+
+                if len(history) > 1:
+                    cv2.putText(
+                        frame,
+                        f"PATH: {path}"[:100],
+                        (
+                            max(10, cx - 100),
+                            max(40, cy - 38),
+                        ),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.34,
+                        (255, 255, 255),
+                        1,
+                        cv2.LINE_AA,
+                    )
 
             # -------------------------------------------------
             # Customer overlays
@@ -4209,6 +4456,30 @@ def main():
                     255
                 ),
                 2
+            )
+
+            # -------------------------------------------------
+            # Store intelligence status
+            # -------------------------------------------------
+
+            store_kpi_text = (
+                "STORE: "
+                f"{store_analytics.get('active_customers', 0)} customers | "
+                f"HIGH INTENT: "
+                f"{store_analytics.get('high_intent_customers', 0)} | "
+                f"OPPORTUNITIES: "
+                f"{store_analytics.get('unattended_opportunities', 0)}"
+            )
+
+            cv2.putText(
+                frame,
+                store_kpi_text,
+                (20, 52),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.48,
+                (255, 255, 255),
+                2,
+                cv2.LINE_AA,
             )
 
             # =================================================
