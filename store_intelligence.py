@@ -59,6 +59,13 @@ class CustomerObservation:
     unattended_since: Optional[float] = None
     assistance_alert_sent: bool = False
 
+    # Retail journey analytics
+    zone_history: List[str] = field(default_factory=list)
+    zone_dwell: Dict[str, float] = field(default_factory=dict)
+    zone_entered_at: Optional[float] = None
+    total_store_dwell: float = 0.0
+    zones_visited: int = 0
+
 
 @dataclass
 class StaffObservation:
@@ -66,6 +73,14 @@ class StaffObservation:
     camera_id: str
     zone: str
     last_seen: float
+
+
+@dataclass
+class ZoneVisit:
+    zone: str
+    entered_at: float
+    exited_at: Optional[float] = None
+    dwell_seconds: float = 0.0
 
 
 @dataclass
@@ -164,6 +179,11 @@ class StoreIntelligence:
         self.latest_alerts: List[
             StaffAlert
         ] = []
+
+        # Store-wide retail journey state.
+        self.customer_journeys: Dict[int, List[ZoneVisit]] = {}
+        self.completed_visits: Dict[Tuple[int, str], int] = {}
+        self.zone_customer_counts: Dict[str, int] = {}
 
     # ========================================================
     # CAMERA CONFIGURATION
@@ -286,82 +306,106 @@ class StoreIntelligence:
         repeat_visit: bool = False,
         staff_nearby: Optional[bool] = None,
     ):
-
-        now = (
-            time.monotonic()
-            if now is None
-            else float(now)
-        )
-
-        customer = self.customers.get(
-            customer_id
-        )
+        """Update a customer while maintaining store journey analytics."""
+        now = time.monotonic() if now is None else float(now)
+        zone = str(zone or "Unassigned")
+        customer = self.customers.get(customer_id)
 
         if customer is None:
-
             customer = CustomerObservation(
-                customer_id=customer_id,
-                camera_id=camera_id,
-                zone=zone,
-                first_seen=now,
-                last_seen=now,
+                customer_id=customer_id, camera_id=camera_id, zone=zone,
+                first_seen=now, last_seen=now, zone_entered_at=now,
             )
-
-            self.customers[
-                customer_id
-            ] = customer
-
+            self.customers[customer_id] = customer
+            self.customer_journeys[customer_id] = [ZoneVisit(zone, now)]
+            customer.zone_history = [zone]
+            customer.zone_dwell[zone] = 0.0
+            customer.zones_visited = 1
         else:
+            elapsed = min(max(0.0, now - customer.last_seen), 2.0)
+            customer.total_store_dwell += elapsed
+            customer.dwell_seconds += elapsed
+            customer.zone_dwell[customer.zone] = customer.zone_dwell.get(customer.zone, 0.0) + elapsed
 
-            elapsed = max(
-                0.0,
-                now - customer.last_seen,
-            )
-
-            # Protect dwell from camera stalls.
-            customer.dwell_seconds += min(
-                elapsed,
-                2.0,
-            )
-
+            journey = self.customer_journeys.setdefault(customer_id, [])
+            if journey:
+                journey[-1].dwell_seconds += elapsed
+            if not journey:
+                journey.append(ZoneVisit(zone, now))
+            if zone != customer.zone:
+                journey[-1].exited_at = now
+                key = (customer_id, customer.zone)
+                self.completed_visits[key] = self.completed_visits.get(key, 0) + 1
+                already_visited = zone in customer.zone_history
+                repeat_visit = repeat_visit or already_visited or self.completed_visits[key] > 1
+                journey.append(ZoneVisit(zone, now))
+                if not already_visited:
+                    customer.zone_history.append(zone)
+                customer.zone_dwell.setdefault(zone, 0.0)
+                customer.zone_entered_at = now
+                customer.zones_visited = len(customer.zone_history)
             customer.last_seen = now
-
             customer.camera_id = camera_id
             customer.zone = zone
 
-        customer.product_interaction |= bool(
-            product_interaction
-        )
-
-        customer.phone_comparison |= bool(
-            phone_comparison
-        )
-
-        customer.repeat_visit |= bool(
-            repeat_visit
-        )
-
+        customer.product_interaction |= bool(product_interaction)
+        customer.phone_comparison |= bool(phone_comparison)
+        customer.repeat_visit |= bool(repeat_visit)
         if staff_nearby is not None:
+            customer.staff_nearby = bool(staff_nearby)
 
-            customer.staff_nearby = bool(
-                staff_nearby
-            )
-
-        self._calculate_intent(
-            customer
-        )
-
-        self._update_unattended_state(
-            customer,
-            now,
-        )
-
-        alert = self._maybe_create_staff_alert(
-            customer,
-            now,
-        )
-
+        self._calculate_intent(customer)
+        self._update_unattended_state(customer, now)
+        alert = self._maybe_create_staff_alert(customer, now)
+        self._refresh_zone_counts()
         return customer, alert
+
+    # ========================================================
+    # RETAIL JOURNEY / STORE ANALYTICS
+    # ========================================================
+
+    def get_customer_journey(self, customer_id: int) -> List[str]:
+        """Return the customer's ordered zone journey."""
+        customer = self.customers.get(customer_id)
+        return list(customer.zone_history) if customer else []
+
+    def get_customer_journey_detail(self, customer_id: int) -> List[dict]:
+        """Return zone-by-zone journey data for dashboard/API use."""
+        return [{
+            "zone": visit.zone,
+            "entered_at": visit.entered_at,
+            "exited_at": visit.exited_at,
+            "dwell_seconds": round(max(0.0, visit.dwell_seconds), 1),
+        } for visit in self.customer_journeys.get(customer_id, [])]
+
+    def _refresh_zone_counts(self):
+        counts: Dict[str, int] = {}
+        for customer in self.customers.values():
+            counts[customer.zone] = counts.get(customer.zone, 0) + 1
+        self.zone_customer_counts = counts
+
+    def store_analytics(self) -> dict:
+        """Return store-oriented KPIs for API/dashboard consumption."""
+        customers = list(self.customers.values())
+        high = sum(c.intent_level == "HIGH" for c in customers)
+        medium = sum(c.intent_level == "MEDIUM" for c in customers)
+        unattended = sum(c.intent_level == "HIGH" and c.staff_nearby is False for c in customers)
+        avg_dwell = sum(c.total_store_dwell for c in customers) / len(customers) if customers else 0.0
+        zone_stats = {}
+        for zone, count in self.zone_customer_counts.items():
+            values = [c.zone_dwell.get(zone, 0.0) for c in customers if zone in c.zone_dwell]
+            zone_stats[zone] = {
+                "active_customers": count,
+                "average_dwell_seconds": round(sum(values) / len(values), 1) if values else 0.0,
+            }
+        return {
+            "active_customers": len(customers),
+            "high_intent_customers": high,
+            "medium_intent_customers": medium,
+            "unattended_opportunities": unattended,
+            "average_store_dwell_seconds": round(avg_dwell, 1),
+            "zones": zone_stats,
+        }
 
     # ========================================================
     # INTENT
@@ -392,6 +436,12 @@ class StoreIntelligence:
         if customer.repeat_visit:
 
             score += 2
+
+        # Explicit staff absence is a sales-opportunity signal.
+        # Unknown staff status is deliberately neutral.
+        if customer.staff_nearby is False:
+
+            score += 3
 
         customer.intent_score = score
 
