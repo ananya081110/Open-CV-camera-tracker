@@ -6,18 +6,17 @@ import time
 from collections import deque
 from datetime import datetime
 from pathlib import Path
+import sys
 
 import cv2
 import numpy as np
 
-import config
-import sys
-from pathlib import Path
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+import config
 
 from database import init_db
 from detector import PoseDetector
@@ -34,7 +33,6 @@ from retail_notification_service import RetailNotificationService
 from retail_live_state import LIVE_STATE
 from retail_live_api import start_live_api
 import threading
-
 
 # ============================================================
 # PREDICTIVE SUBJECT TRACKING / VIRTUAL PTZ
