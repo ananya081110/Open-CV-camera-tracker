@@ -1,0 +1,751 @@
+timestamp,track_id,event,details,image_path
+2026-09-15T15:53:57,3,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_3_20260915_155357_668962.jpg
+2026-09-15T15:54:41,10,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_10_20260915_155441_402637.jpg
+2026-09-15T15:54:41,11,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_11_20260915_155441_653326.jpg
+2026-09-15T15:54:41,8,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_8_20260915_155441_797513.jpg
+2026-09-15T15:54:41,6,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_6_20260915_155441_884635.jpg
+2026-09-15T15:54:42,7,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_7_20260915_155442_027217.jpg
+2026-09-15T15:54:42,13,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_13_20260915_155442_129080.jpg
+2026-09-15T15:54:42,9,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_9_20260915_155442_267807.jpg
+2026-09-15T15:54:43,16,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_16_20260915_155443_016251.jpg
+2026-09-15T15:54:43,17,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_17_20260915_155443_085773.jpg
+2026-09-15T15:54:44,18,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_18_20260915_155444_763332.jpg
+2026-09-15T15:54:45,18,POSTURE_CHANGE,previous=limited_view; confidence=0.84; torso_angle=76.79450195056917; knee_angle=173.84291419981275; hip_angle=169.6347119340462; reason=horizontal torso orientation,captured/fall/posture_change_person_18_20260915_155445_296785.jpg
+2026-09-15T15:54:46,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_155446_267943.jpg
+2026-09-15T15:54:54,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:07.,captured/zone/zone_exit_person_3_20260915_155454_197311.jpg
+2026-09-15T17:28:49,15,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_15_20260915_172849_574041.jpg
+2026-09-15T17:28:49,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_172849_664050.jpg
+2026-09-15T17:28:49,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_172849_819374.jpg
+2026-09-15T17:29:14,3,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_3_20260915_172914_766952.jpg
+2026-09-15T18:15:40,3,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_3_20260915_181540_936317.jpg
+2026-09-15T18:15:45,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:04.,captured/zone/zone_exit_person_3_20260915_181545_701652.jpg
+2026-09-15T18:15:45,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181545_942994.jpg
+2026-09-15T18:15:47,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181547_870804.jpg
+2026-09-15T18:15:48,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181548_061992.jpg
+2026-09-15T18:15:50,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181550_033495.jpg
+2026-09-15T18:15:50,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181550_113782.jpg
+2026-09-15T18:15:53,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_3_20260915_181553_349510.jpg
+2026-09-15T18:15:53,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181553_924705.jpg
+2026-09-15T18:16:10,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:16.,captured/zone/zone_exit_person_3_20260915_181610_090085.jpg
+2026-09-15T18:16:10,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181610_342914.jpg
+2026-09-15T18:16:10,6,POSTURE_CHANGE,previous=unknown; confidence=1.00; torso_angle=160.55007465241349; knee_angle=162.07258014336378; hip_angle=53.62081879104832; reason=horizontal torso orientation,captured/fall/posture_change_person_6_20260915_181610_992167.jpg
+2026-09-15T18:16:11,10,POSTURE_CHANGE,previous=unknown; confidence=1.00; torso_angle=131.02750405924934; knee_angle=146.44758570963782; hip_angle=147.59253096584314; reason=horizontal torso orientation,captured/fall/posture_change_person_10_20260915_181611_384123.jpg
+2026-09-15T18:16:12,10,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_10_20260915_181612_105325.jpg
+2026-09-15T18:16:14,13,POSTURE_CHANGE,previous=unknown; confidence=0.94; torso_angle=87.90984084628933; knee_angle=173.35099369010624; hip_angle=168.05271488590648; reason=horizontal torso orientation,captured/fall/posture_change_person_13_20260915_181614_720229.jpg
+2026-09-15T18:16:17,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181617_982581.jpg
+2026-09-15T18:16:19,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_3_20260915_181619_646256.jpg
+2026-09-15T18:16:20,9,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_9_20260915_181620_036494.jpg
+2026-09-15T18:16:21,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181621_773430.jpg
+2026-09-15T18:16:21,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181621_856584.jpg
+2026-09-15T18:16:22,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_181622_958151.jpg
+2026-09-15T18:16:23,9,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_9_20260915_181623_619032.jpg
+2026-09-15T18:16:23,9,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_9_20260915_181623_722518.jpg
+2026-09-15T18:16:24,15,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_15_20260915_181624_969856.jpg
+2026-09-15T18:16:26,4,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_4_20260915_181626_825805.jpg
+2026-09-15T18:16:27,9,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_9_20260915_181627_030781.jpg
+2026-09-15T18:16:27,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:03.,captured/zone/zone_exit_person_3_20260915_181627_204340.jpg
+2026-09-15T18:16:27,9,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_9_20260915_181627_283581.jpg
+2026-09-15T18:16:27,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181627_611140.jpg
+2026-09-15T18:16:29,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181629_694024.jpg
+2026-09-15T18:16:44,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181644_027047.jpg
+2026-09-15T18:16:44,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181644_112449.jpg
+2026-09-15T18:16:52,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181652_597201.jpg
+2026-09-15T18:16:53,20,POSTURE_CHANGE,previous=unknown; confidence=0.71; torso_angle=61.57400775690899; knee_angle=141.3519075122812; hip_angle=166.00716497469836; reason=horizontal torso orientation,captured/fall/posture_change_person_20_20260915_181653_162212.jpg
+2026-09-15T18:16:53,20,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_20_20260915_181653_730811.jpg
+2026-09-15T18:16:55,20,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_20_20260915_181655_241197.jpg
+2026-09-15T18:16:55,20,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_20_20260915_181655_657615.jpg
+2026-09-15T18:17:03,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_181703_165837.jpg
+2026-09-15T18:17:06,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:13.,captured/zone/zone_exit_person_3_20260915_181706_555030.jpg
+2026-09-15T18:17:07,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181707_966408.jpg
+2026-09-15T18:17:27,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181727_912423.jpg
+2026-09-15T18:17:28,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181728_001161.jpg
+2026-09-15T18:17:58,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181758_981531.jpg
+2026-09-15T18:17:59,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181759_448154.jpg
+2026-09-15T18:18:04,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:05.,captured/zone/zone_exit_person_3_20260915_181804_739769.jpg
+2026-09-15T18:18:04,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181804_882099.jpg
+2026-09-15T18:18:06,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181806_896553.jpg
+2026-09-15T18:18:07,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181807_240624.jpg
+2026-09-15T18:18:09,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181809_156818.jpg
+2026-09-15T18:18:10,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181810_992792.jpg
+2026-09-15T18:18:11,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181811_369849.jpg
+2026-09-15T18:18:18,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:05.,captured/zone/zone_exit_person_3_20260915_181818_215634.jpg
+2026-09-15T18:18:18,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181818_301120.jpg
+2026-09-15T18:18:27,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:08.,captured/zone/zone_exit_person_3_20260915_181827_142722.jpg
+2026-09-15T18:18:27,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181827_374657.jpg
+2026-09-15T18:18:34,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181834_019396.jpg
+2026-09-15T18:18:34,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181834_105658.jpg
+2026-09-15T18:18:40,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181840_552246.jpg
+2026-09-15T18:18:40,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181840_645375.jpg
+2026-09-15T18:18:42,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181842_829242.jpg
+2026-09-15T18:18:42,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181842_885572.jpg
+2026-09-15T18:18:49,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181849_154550.jpg
+2026-09-15T18:18:49,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181849_238828.jpg
+2026-09-15T18:18:51,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181851_574143.jpg
+2026-09-15T18:18:51,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181851_722174.jpg
+2026-09-15T18:18:53,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181853_764361.jpg
+2026-09-15T18:18:54,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181854_290762.jpg
+2026-09-15T18:18:56,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181856_009630.jpg
+2026-09-15T18:18:56,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181856_481512.jpg
+2026-09-15T18:18:59,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181859_359763.jpg
+2026-09-15T18:18:59,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181859_656418.jpg
+2026-09-15T18:19:01,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181901_699550.jpg
+2026-09-15T18:19:01,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181901_755319.jpg
+2026-09-15T18:19:03,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181903_764961.jpg
+2026-09-15T18:19:04,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181904_613239.jpg
+2026-09-15T18:19:07,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_3_20260915_181907_574662.jpg
+2026-09-15T18:19:07,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181907_914213.jpg
+2026-09-15T18:19:11,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181911_414080.jpg
+2026-09-15T18:19:11,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181911_496565.jpg
+2026-09-15T18:19:13,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181913_395827.jpg
+2026-09-15T18:19:14,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181914_326340.jpg
+2026-09-15T18:19:21,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181921_739891.jpg
+2026-09-15T18:19:21,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181921_865042.jpg
+2026-09-15T18:19:24,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_3_20260915_181924_759802.jpg
+2026-09-15T18:19:24,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181924_850574.jpg
+2026-09-15T18:19:27,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_3_20260915_181927_734262.jpg
+2026-09-15T18:19:27,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181927_789113.jpg
+2026-09-15T18:19:31,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181931_493547.jpg
+2026-09-15T18:19:31,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181931_585175.jpg
+2026-09-15T18:19:35,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_3_20260915_181935_194820.jpg
+2026-09-15T18:19:35,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181935_496742.jpg
+2026-09-15T18:19:37,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181937_301953.jpg
+2026-09-15T18:19:37,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181937_828027.jpg
+2026-09-15T18:19:39,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181939_405057.jpg
+2026-09-15T18:19:40,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181940_337701.jpg
+2026-09-15T18:19:42,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_3_20260915_181942_261752.jpg
+2026-09-15T18:19:42,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181942_670684.jpg
+2026-09-15T18:19:44,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181944_537325.jpg
+2026-09-15T18:19:46,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181945_997338.jpg
+2026-09-15T18:19:46,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181946_643527.jpg
+2026-09-15T18:19:50,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_3_20260915_181950_119298.jpg
+2026-09-15T18:19:50,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181950_203243.jpg
+2026-09-15T18:19:55,4,ZONE_DWELL_THRESHOLD,02:52 inside monitoring zone,captured/zone/zone_dwell_threshold_person_4_20260915_181955_644863.jpg
+2026-09-15T18:19:56,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:05.,captured/zone/zone_exit_person_3_20260915_181956_776538.jpg
+2026-09-15T18:19:56,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181956_887887.jpg
+2026-09-15T18:19:59,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_181959_217350.jpg
+2026-09-15T18:19:59,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_181959_300290.jpg
+2026-09-15T18:20:01,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_182001_550628.jpg
+2026-09-15T18:20:01,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_182001_639909.jpg
+2026-09-15T18:20:09,4,ZONE_EXIT,Person exited monitoring zone; dwell=03:06.,captured/zone/zone_exit_person_4_20260915_182009_865478.jpg
+2026-09-15T18:20:10,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182010_040764.jpg
+2026-09-15T18:20:13,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:03.,captured/zone/zone_exit_person_4_20260915_182013_100716.jpg
+2026-09-15T18:20:13,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182013_186113.jpg
+2026-09-15T18:20:15,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_4_20260915_182015_287141.jpg
+2026-09-15T18:20:15,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182015_375165.jpg
+2026-09-15T18:20:17,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182017_300274.jpg
+2026-09-15T18:20:17,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182017_704014.jpg
+2026-09-15T18:20:22,3,POSTURE_CHANGE,previous=limited_view; confidence=0.88; torso_angle=81.56552120996503; knee_angle=150.05530677206013; hip_angle=57.04313447985456; reason=horizontal torso orientation,captured/fall/posture_change_person_3_20260915_182022_706516.jpg
+2026-09-15T18:20:23,3,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_3_20260915_182023_573218.jpg
+2026-09-15T18:20:23,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182023_642802.jpg
+2026-09-15T18:20:24,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182024_458482.jpg
+2026-09-15T18:20:25,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182025_767673.jpg
+2026-09-15T18:20:26,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182026_596463.jpg
+2026-09-15T18:20:29,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182029_710543.jpg
+2026-09-15T18:20:53,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:23.,captured/zone/zone_exit_person_4_20260915_182053_153348.jpg
+2026-09-15T18:20:56,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182056_708062.jpg
+2026-09-15T18:20:56,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182056_788115.jpg
+2026-09-15T18:21:00,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182100_472268.jpg
+2026-09-15T18:21:00,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182100_707638.jpg
+2026-09-15T18:21:02,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_4_20260915_182102_789938.jpg
+2026-09-15T18:21:02,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182102_938656.jpg
+2026-09-15T18:21:05,10,ZONE_EXIT,Person exited monitoring zone; dwell=04:42.,captured/zone/zone_exit_person_10_20260915_182105_181315.jpg
+2026-09-15T18:21:05,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182105_376792.jpg
+2026-09-15T18:21:07,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182107_449766.jpg
+2026-09-15T18:21:07,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182107_503282.jpg
+2026-09-15T18:21:09,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182109_809503.jpg
+2026-09-15T18:21:10,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182110_017291.jpg
+2026-09-15T18:21:12,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182112_147319.jpg
+2026-09-15T18:21:12,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182112_381416.jpg
+2026-09-15T18:21:12,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:08.,captured/zone/zone_exit_person_4_20260915_182112_765328.jpg
+2026-09-15T18:21:13,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182113_085552.jpg
+2026-09-15T18:21:17,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:04.,captured/zone/zone_exit_person_4_20260915_182117_914110.jpg
+2026-09-15T18:21:18,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182118_066745.jpg
+2026-09-15T18:21:20,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182120_743289.jpg
+2026-09-15T18:21:20,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182120_916877.jpg
+2026-09-15T18:21:23,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182123_774194.jpg
+2026-09-15T18:21:23,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182123_863570.jpg
+2026-09-15T18:21:27,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182127_596642.jpg
+2026-09-15T18:21:27,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182127_677905.jpg
+2026-09-15T18:21:35,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182135_632654.jpg
+2026-09-15T18:21:35,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182135_716905.jpg
+2026-09-15T18:21:37,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182137_817670.jpg
+2026-09-15T18:21:37,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182137_968023.jpg
+2026-09-15T18:21:39,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182139_975828.jpg
+2026-09-15T18:21:40,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182140_061822.jpg
+2026-09-15T18:21:56,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182156_910323.jpg
+2026-09-15T18:21:57,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182157_232512.jpg
+2026-09-15T18:22:04,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182204_982785.jpg
+2026-09-15T18:22:05,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182205_044282.jpg
+2026-09-15T18:23:28,10,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_10_20260915_182328_323090.jpg
+2026-09-15T18:23:28,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182328_627617.jpg
+2026-09-15T18:23:28,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182328_780168.jpg
+2026-09-15T18:23:31,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_10_20260915_182331_286662.jpg
+2026-09-15T18:23:31,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182331_529071.jpg
+2026-09-15T18:23:34,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182334_531441.jpg
+2026-09-15T18:23:56,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:21.,captured/zone/zone_exit_person_10_20260915_182356_398683.jpg
+2026-09-15T18:24:15,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182415_809156.jpg
+2026-09-15T18:24:16,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182416_049241.jpg
+2026-09-15T18:24:18,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182418_119057.jpg
+2026-09-15T18:24:18,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182418_244738.jpg
+2026-09-15T18:24:25,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182425_358463.jpg
+2026-09-15T18:24:25,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182425_478987.jpg
+2026-09-15T18:24:28,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182428_582627.jpg
+2026-09-15T18:24:28,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182428_647933.jpg
+2026-09-15T18:25:15,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182515_368219.jpg
+2026-09-15T18:25:15,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182515_484153.jpg
+2026-09-15T18:25:45,4,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_4_20260915_182545_169256.jpg
+2026-09-15T18:25:56,3,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_3_20260915_182556_069551.jpg
+2026-09-15T18:26:05,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_182605_047707.jpg
+2026-09-15T18:26:05,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_182605_131270.jpg
+2026-09-15T18:26:08,19,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_19_20260915_182608_150683.jpg
+2026-09-15T18:26:08,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182608_395646.jpg
+2026-09-15T18:26:09,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:03.,captured/zone/zone_exit_person_3_20260915_182609_329693.jpg
+2026-09-15T18:26:15,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182615_395287.jpg
+2026-09-15T18:26:15,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182615_484432.jpg
+2026-09-15T18:26:38,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182638_990061.jpg
+2026-09-15T18:26:39,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182639_070093.jpg
+2026-09-15T18:26:49,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182649_924547.jpg
+2026-09-15T18:26:50,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182650_245386.jpg
+2026-09-15T18:26:57,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182657_186266.jpg
+2026-09-15T18:26:57,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182657_279368.jpg
+2026-09-15T18:27:45,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182744_998402.jpg
+2026-09-15T18:27:45,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182745_077134.jpg
+2026-09-15T18:27:48,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182748_032752.jpg
+2026-09-15T18:27:48,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182748_112686.jpg
+2026-09-15T18:27:50,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_19_20260915_182750_682816.jpg
+2026-09-15T18:27:50,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182750_741198.jpg
+2026-09-15T18:27:54,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_19_20260915_182754_150710.jpg
+2026-09-15T18:27:54,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182754_300814.jpg
+2026-09-15T18:28:04,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182804_801027.jpg
+2026-09-15T18:28:04,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182804_881328.jpg
+2026-09-15T18:28:09,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182809_284634.jpg
+2026-09-15T18:28:09,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182809_342289.jpg
+2026-09-15T18:28:20,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182820_312645.jpg
+2026-09-15T18:28:20,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182820_402430.jpg
+2026-09-15T18:28:22,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182822_413464.jpg
+2026-09-15T18:28:26,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182826_092400.jpg
+2026-09-15T18:28:26,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182826_209153.jpg
+2026-09-15T18:28:29,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182829_958015.jpg
+2026-09-15T18:28:30,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182830_012275.jpg
+2026-09-15T18:28:32,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182832_055064.jpg
+2026-09-15T18:28:32,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182832_291226.jpg
+2026-09-15T18:28:36,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182836_194336.jpg
+2026-09-15T18:28:36,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182836_316215.jpg
+2026-09-15T18:28:38,10,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_10_20260915_182838_372330.jpg
+2026-09-15T18:28:38,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182838_457076.jpg
+2026-09-15T18:28:40,10,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_10_20260915_182840_555097.jpg
+2026-09-15T18:28:44,11,POSTURE_CHANGE,previous=unknown; confidence=0.86; torso_angle=79.15419960183733; knee_angle=144.67726996224008; hip_angle=160.75433195588204; reason=horizontal torso orientation,captured/fall/posture_change_person_11_20260915_182844_330918.jpg
+2026-09-15T18:28:46,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182846_240236.jpg
+2026-09-15T18:28:46,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182846_473995.jpg
+2026-09-15T18:28:49,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182849_968486.jpg
+2026-09-15T18:28:50,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182850_064406.jpg
+2026-09-15T18:29:03,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182903_046956.jpg
+2026-09-15T18:29:03,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182903_119962.jpg
+2026-09-15T18:29:06,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182906_508750.jpg
+2026-09-15T18:29:06,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182906_651802.jpg
+2026-09-15T18:29:09,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182909_767589.jpg
+2026-09-15T18:29:09,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182909_857681.jpg
+2026-09-15T18:29:11,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182911_955235.jpg
+2026-09-15T18:29:12,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182912_191091.jpg
+2026-09-15T18:29:14,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182914_294906.jpg
+2026-09-15T18:29:14,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182914_350395.jpg
+2026-09-15T18:29:16,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182916_541130.jpg
+2026-09-15T18:29:16,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182916_864251.jpg
+2026-09-15T18:29:19,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182919_106357.jpg
+2026-09-15T18:29:19,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182919_196252.jpg
+2026-09-15T18:29:23,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182923_097947.jpg
+2026-09-15T18:29:23,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182923_215662.jpg
+2026-09-15T18:29:25,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182925_278566.jpg
+2026-09-15T18:29:25,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182925_422800.jpg
+2026-09-15T18:29:27,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182927_468322.jpg
+2026-09-15T18:29:27,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182927_522858.jpg
+2026-09-15T18:29:29,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182929_623567.jpg
+2026-09-15T18:29:29,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182929_797656.jpg
+2026-09-15T18:29:31,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_182931_954994.jpg
+2026-09-15T18:29:32,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_182932_193288.jpg
+2026-09-15T18:29:34,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182934_811735.jpg
+2026-09-15T18:29:35,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182935_044799.jpg
+2026-09-15T18:29:37,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182937_231231.jpg
+2026-09-15T18:29:37,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182937_289573.jpg
+2026-09-15T18:29:39,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182939_330906.jpg
+2026-09-15T18:29:39,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182939_388369.jpg
+2026-09-15T18:29:41,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_4_20260915_182941_956436.jpg
+2026-09-15T18:29:42,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182942_424063.jpg
+2026-09-15T18:29:44,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182944_259732.jpg
+2026-09-15T18:29:44,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182944_432895.jpg
+2026-09-15T18:29:46,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_182946_300851.jpg
+2026-09-15T18:29:46,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_182946_530368.jpg
+2026-09-15T18:30:26,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183026_397053.jpg
+2026-09-15T18:30:26,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183026_572333.jpg
+2026-09-15T18:30:35,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183035_439297.jpg
+2026-09-15T18:30:35,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183035_496972.jpg
+2026-09-15T18:31:28,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183128_546163.jpg
+2026-09-15T18:31:28,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183128_665070.jpg
+2026-09-15T18:31:30,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183130_675208.jpg
+2026-09-15T18:31:30,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183130_756519.jpg
+2026-09-15T18:31:32,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183132_861697.jpg
+2026-09-15T18:31:33,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183133_005058.jpg
+2026-09-15T18:31:34,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183134_109999.jpg
+2026-09-15T18:31:34,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183134_928930.jpg
+2026-09-15T18:31:35,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183135_011769.jpg
+2026-09-15T18:31:37,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183137_314112.jpg
+2026-09-15T18:31:37,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183137_370555.jpg
+2026-09-15T18:31:38,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183138_772178.jpg
+2026-09-15T18:31:38,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183138_948776.jpg
+2026-09-15T18:31:41,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183141_045765.jpg
+2026-09-15T18:31:41,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183141_103697.jpg
+2026-09-15T18:31:43,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183143_147607.jpg
+2026-09-15T18:31:43,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183143_524623.jpg
+2026-09-15T18:31:44,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183144_468799.jpg
+2026-09-15T18:31:45,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_4_20260915_183145_540724.jpg
+2026-09-15T18:31:45,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183145_625511.jpg
+2026-09-15T18:31:47,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183147_810907.jpg
+2026-09-15T18:31:48,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183148_338930.jpg
+2026-09-15T18:31:50,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183150_207996.jpg
+2026-09-15T18:31:50,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183150_678617.jpg
+2026-09-15T18:31:52,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:17.,captured/zone/zone_exit_person_3_20260915_183152_042623.jpg
+2026-09-15T18:31:52,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183152_171784.jpg
+2026-09-15T18:31:53,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183153_029364.jpg
+2026-09-15T18:31:53,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183153_114103.jpg
+2026-09-15T18:31:55,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183155_240365.jpg
+2026-09-15T18:31:55,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183155_474896.jpg
+2026-09-15T18:31:59,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183159_994101.jpg
+2026-09-15T18:32:00,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183200_082058.jpg
+2026-09-15T18:32:03,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183203_873489.jpg
+2026-09-15T18:32:03,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183203_965699.jpg
+2026-09-15T18:32:06,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183206_300392.jpg
+2026-09-15T18:32:06,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183206_379892.jpg
+2026-09-15T18:32:11,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183211_715899.jpg
+2026-09-15T18:32:11,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183211_914163.jpg
+2026-09-15T18:32:13,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183213_785086.jpg
+2026-09-15T18:32:14,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183214_016771.jpg
+2026-09-15T18:32:16,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183216_785760.jpg
+2026-09-15T18:32:16,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183216_934404.jpg
+2026-09-15T18:32:18,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183218_942275.jpg
+2026-09-15T18:32:19,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183219_028620.jpg
+2026-09-15T18:32:21,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183221_075029.jpg
+2026-09-15T18:32:21,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183221_312270.jpg
+2026-09-15T18:32:23,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183223_084678.jpg
+2026-09-15T18:32:23,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183223_471690.jpg
+2026-09-15T18:32:25,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183225_135578.jpg
+2026-09-15T18:32:25,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183225_682962.jpg
+2026-09-15T18:32:27,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183227_275880.jpg
+2026-09-15T18:32:27,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183227_757491.jpg
+2026-09-15T18:32:29,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183229_414460.jpg
+2026-09-15T18:32:30,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183230_346716.jpg
+2026-09-15T18:32:31,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183231_836287.jpg
+2026-09-15T18:32:32,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183232_444376.jpg
+2026-09-15T18:32:33,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183233_936803.jpg
+2026-09-15T18:32:34,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183234_489567.jpg
+2026-09-15T18:32:36,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183236_412812.jpg
+2026-09-15T18:32:37,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183237_203226.jpg
+2026-09-15T18:32:39,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183239_303863.jpg
+2026-09-15T18:32:39,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183239_386804.jpg
+2026-09-15T18:32:41,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183241_780083.jpg
+2026-09-15T18:32:43,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_4_20260915_183243_580379.jpg
+2026-09-15T18:32:47,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183247_488099.jpg
+2026-09-15T18:32:47,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183247_546347.jpg
+2026-09-15T18:32:48,19,ZONE_EXIT,Person exited monitoring zone; dwell=01:04.,captured/zone/zone_exit_person_19_20260915_183248_572816.jpg
+2026-09-15T18:32:48,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183248_799844.jpg
+2026-09-15T18:32:50,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_4_20260915_183250_812080.jpg
+2026-09-15T18:32:51,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183251_012323.jpg
+2026-09-15T18:32:51,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183251_112551.jpg
+2026-09-15T18:32:52,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_3_20260915_183252_123789.jpg
+2026-09-15T18:32:54,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:05.,captured/zone/zone_exit_person_19_20260915_183254_516018.jpg
+2026-09-15T18:32:55,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183255_388365.jpg
+2026-09-15T18:32:55,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183255_448142.jpg
+2026-09-15T18:32:58,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183258_856198.jpg
+2026-09-15T18:32:58,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183258_914355.jpg
+2026-09-15T18:33:02,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183302_091607.jpg
+2026-09-15T18:33:02,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183302_148255.jpg
+2026-09-15T18:33:06,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183306_056263.jpg
+2026-09-15T18:33:06,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183306_115726.jpg
+2026-09-15T18:33:24,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183324_452087.jpg
+2026-09-15T18:33:24,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183324_533416.jpg
+2026-09-15T18:33:26,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183326_640767.jpg
+2026-09-15T18:33:26,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183326_726769.jpg
+2026-09-15T18:33:34,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183334_198269.jpg
+2026-09-15T18:33:34,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183334_317906.jpg
+2026-09-15T18:33:36,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:45.,captured/zone/zone_exit_person_4_20260915_183336_179128.jpg
+2026-09-15T18:33:40,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183340_141017.jpg
+2026-09-15T18:33:40,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183340_230188.jpg
+2026-09-15T18:33:43,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183343_262317.jpg
+2026-09-15T18:33:43,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183343_320425.jpg
+2026-09-15T18:33:45,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183345_513576.jpg
+2026-09-15T18:33:45,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183345_590811.jpg
+2026-09-15T18:33:53,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183353_030479.jpg
+2026-09-15T18:33:53,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183353_086819.jpg
+2026-09-15T18:33:55,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183355_124468.jpg
+2026-09-15T18:33:57,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183356_998838.jpg
+2026-09-15T18:33:59,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183359_445847.jpg
+2026-09-15T18:33:59,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183359_589619.jpg
+2026-09-15T18:34:01,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183401_603113.jpg
+2026-09-15T18:34:01,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183401_656529.jpg
+2026-09-15T18:34:03,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183403_697201.jpg
+2026-09-15T18:34:04,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183404_081003.jpg
+2026-09-15T18:34:05,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183405_801664.jpg
+2026-09-15T18:34:06,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183406_323970.jpg
+2026-09-15T18:34:08,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_3_20260915_183408_392746.jpg
+2026-09-15T18:34:08,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183408_480663.jpg
+2026-09-15T18:34:10,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_3_20260915_183410_782602.jpg
+2026-09-15T18:34:10,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183410_863174.jpg
+2026-09-15T18:34:13,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183413_027213.jpg
+2026-09-15T18:34:13,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183413_115698.jpg
+2026-09-15T18:34:14,21,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_21_20260915_183414_404045.jpg
+2026-09-15T18:34:21,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:08.,captured/zone/zone_exit_person_3_20260915_183421_513082.jpg
+2026-09-15T18:34:21,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183421_660006.jpg
+2026-09-15T18:34:25,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:03.,captured/zone/zone_exit_person_3_20260915_183425_770748.jpg
+2026-09-15T18:34:26,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183426_003542.jpg
+2026-09-15T18:34:28,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183428_214905.jpg
+2026-09-15T18:34:28,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183428_452585.jpg
+2026-09-15T18:34:30,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183430_662854.jpg
+2026-09-15T18:34:31,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183431_130802.jpg
+2026-09-15T18:34:33,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183433_134678.jpg
+2026-09-15T18:34:33,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183433_190377.jpg
+2026-09-15T18:34:35,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183435_701602.jpg
+2026-09-15T18:34:35,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183435_758957.jpg
+2026-09-15T18:34:38,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183438_501818.jpg
+2026-09-15T18:34:38,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183438_559627.jpg
+2026-09-15T18:34:40,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183440_754206.jpg
+2026-09-15T18:34:40,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183440_833331.jpg
+2026-09-15T18:34:46,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:03.,captured/zone/zone_exit_person_3_20260915_183446_464070.jpg
+2026-09-15T18:34:46,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183446_637628.jpg
+2026-09-15T18:34:49,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_183449_263510.jpg
+2026-09-15T18:34:49,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183449_592713.jpg
+2026-09-15T18:34:52,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183452_584774.jpg
+2026-09-15T18:35:05,15,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_15_20260915_183504_995943.jpg
+2026-09-15T18:35:05,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:12.,captured/zone/zone_exit_person_3_20260915_183505_136128.jpg
+2026-09-15T18:35:05,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183505_296428.jpg
+2026-09-15T18:35:07,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_15_20260915_183507_234420.jpg
+2026-09-15T18:35:07,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_3_20260915_183507_408309.jpg
+2026-09-15T18:35:07,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183507_464108.jpg
+2026-09-15T18:35:07,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183507_557296.jpg
+2026-09-15T18:35:09,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_3_20260915_183509_976798.jpg
+2026-09-15T18:35:10,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183510_031390.jpg
+2026-09-15T18:35:10,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183510_501417.jpg
+2026-09-15T18:35:10,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_183510_735232.jpg
+2026-09-15T18:35:14,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_3_20260915_183514_414975.jpg
+2026-09-15T18:35:14,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183514_533916.jpg
+2026-09-15T18:35:27,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:12.,captured/zone/zone_exit_person_3_20260915_183527_026475.jpg
+2026-09-15T18:35:27,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183527_104613.jpg
+2026-09-15T18:35:33,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:05.,captured/zone/zone_exit_person_3_20260915_183533_401563.jpg
+2026-09-15T18:35:33,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183533_645988.jpg
+2026-09-15T18:35:34,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183534_032395.jpg
+2026-09-15T18:35:40,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183540_115985.jpg
+2026-09-15T18:35:41,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:07.,captured/zone/zone_exit_person_3_20260915_183541_393829.jpg
+2026-09-15T18:35:41,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183541_477183.jpg
+2026-09-15T18:35:42,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_4_20260915_183542_005241.jpg
+2026-09-15T18:35:43,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183543_028299.jpg
+2026-09-15T18:35:44,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:10.,captured/zone/zone_exit_person_19_20260915_183544_194088.jpg
+2026-09-15T18:35:44,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_3_20260915_183544_570438.jpg
+2026-09-15T18:35:44,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183544_746054.jpg
+2026-09-15T18:35:44,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183544_803645.jpg
+2026-09-15T18:35:46,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183546_906421.jpg
+2026-09-15T18:35:48,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:03.,captured/zone/zone_exit_person_19_20260915_183548_536524.jpg
+2026-09-15T18:35:48,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183548_628301.jpg
+2026-09-15T18:35:53,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:05.,captured/zone/zone_exit_person_19_20260915_183553_962472.jpg
+2026-09-15T18:35:54,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183554_045493.jpg
+2026-09-15T18:35:57,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_19_20260915_183557_230284.jpg
+2026-09-15T18:35:57,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183557_307854.jpg
+2026-09-15T18:35:59,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183559_328310.jpg
+2026-09-15T18:35:59,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183559_705702.jpg
+2026-09-15T18:36:01,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183601_311299.jpg
+2026-09-15T18:36:02,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183602_240342.jpg
+2026-09-15T18:36:04,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:17.,captured/zone/zone_exit_person_3_20260915_183604_749895.jpg
+2026-09-15T18:36:05,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183605_216672.jpg
+2026-09-15T18:36:05,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183605_309124.jpg
+2026-09-15T18:36:05,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_183605_674560.jpg
+2026-09-15T18:36:07,22,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_22_20260915_183607_083810.jpg
+2026-09-15T18:36:08,22,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_22_20260915_183608_484507.jpg
+2026-09-15T18:36:08,22,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_22_20260915_183608_631600.jpg
+2026-09-15T18:36:11,22,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_22_20260915_183611_720147.jpg
+2026-09-15T18:36:11,22,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_22_20260915_183611_773162.jpg
+2026-09-15T18:36:13,22,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_22_20260915_183613_964458.jpg
+2026-09-15T18:36:14,22,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_22_20260915_183614_048629.jpg
+2026-09-15T18:36:16,22,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_22_20260915_183616_149941.jpg
+2026-09-15T18:36:16,22,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_22_20260915_183616_296352.jpg
+2026-09-15T18:36:21,22,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_22_20260915_183621_776049.jpg
+2026-09-15T18:36:21,22,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_22_20260915_183621_858712.jpg
+2026-09-15T18:36:24,22,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_22_20260915_183624_632296.jpg
+2026-09-15T18:36:24,22,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_22_20260915_183624_715307.jpg
+2026-09-15T18:36:30,15,ZONE_EXIT,Person exited monitoring zone; dwell=01:19.,captured/zone/zone_exit_person_15_20260915_183630_662588.jpg
+2026-09-15T18:36:32,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183632_817213.jpg
+2026-09-15T18:36:32,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_183632_951526.jpg
+2026-09-15T18:36:33,22,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_22_20260915_183633_262205.jpg
+2026-09-15T18:36:33,22,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_22_20260915_183633_376239.jpg
+2026-09-15T18:36:36,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_15_20260915_183636_284626.jpg
+2026-09-15T18:36:36,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183636_343606.jpg
+2026-09-15T18:36:38,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_183638_353581.jpg
+2026-09-15T18:36:38,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183638_409813.jpg
+2026-09-15T18:36:41,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_15_20260915_183641_153478.jpg
+2026-09-15T18:36:41,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183641_209854.jpg
+2026-09-15T18:36:42,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183642_938718.jpg
+2026-09-15T18:36:43,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_183643_013243.jpg
+2026-09-15T18:36:43,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183643_545780.jpg
+2026-09-15T18:36:43,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_183643_723107.jpg
+2026-09-15T18:36:45,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_4_20260915_183645_677308.jpg
+2026-09-15T18:36:45,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183645_769798.jpg
+2026-09-15T18:36:48,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:04.,captured/zone/zone_exit_person_15_20260915_183648_422098.jpg
+2026-09-15T18:36:48,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183648_567965.jpg
+2026-09-15T18:36:50,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183650_755597.jpg
+2026-09-15T18:36:51,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_183651_047902.jpg
+2026-09-15T18:36:53,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183653_006594.jpg
+2026-09-15T18:37:01,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:08.,captured/zone/zone_exit_person_15_20260915_183701_219677.jpg
+2026-09-15T18:37:01,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183701_920508.jpg
+2026-09-15T18:37:26,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:24.,captured/zone/zone_exit_person_15_20260915_183726_627603.jpg
+2026-09-15T18:37:26,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183726_682193.jpg
+2026-09-15T18:37:32,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:05.,captured/zone/zone_exit_person_15_20260915_183732_286380.jpg
+2026-09-15T18:37:32,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183732_457643.jpg
+2026-09-15T18:37:35,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_183735_651371.jpg
+2026-09-15T18:38:15,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:42.,captured/zone/zone_exit_person_15_20260915_183815_980002.jpg
+2026-09-15T18:38:17,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183817_234843.jpg
+2026-09-15T18:38:36,20,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_20_20260915_183836_766428.jpg
+2026-09-15T18:38:36,3,ZONE_DWELL_THRESHOLD,02:31 inside monitoring zone,captured/zone/zone_dwell_threshold_person_3_20260915_183836_855040.jpg
+2026-09-15T18:38:37,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183837_066139.jpg
+2026-09-15T18:38:37,19,POSTURE_CHANGE,previous=limited_view; confidence=0.67; torso_angle=57.4778177082138; knee_angle=121.6326749873459; hip_angle=140.90995574345206; reason=horizontal torso orientation,captured/fall/posture_change_person_19_20260915_183837_332701.jpg
+2026-09-15T18:38:37,19,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_19_20260915_183837_608184.jpg
+2026-09-15T18:38:42,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:05.,captured/zone/zone_exit_person_19_20260915_183842_385800.jpg
+2026-09-15T18:38:42,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183842_529634.jpg
+2026-09-15T18:38:44,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_19_20260915_183844_684498.jpg
+2026-09-15T18:38:45,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183845_061666.jpg
+2026-09-15T18:38:49,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183849_937054.jpg
+2026-09-15T18:38:49,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183849_995350.jpg
+2026-09-15T18:38:53,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183853_202980.jpg
+2026-09-15T18:38:53,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183853_351812.jpg
+2026-09-15T18:38:55,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183855_303219.jpg
+2026-09-15T18:38:55,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183855_530576.jpg
+2026-09-15T18:38:57,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183857_586854.jpg
+2026-09-15T18:38:57,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183857_662661.jpg
+2026-09-15T18:38:59,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183859_767961.jpg
+2026-09-15T18:38:59,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183859_830728.jpg
+2026-09-15T18:39:01,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183901_870248.jpg
+2026-09-15T18:39:01,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183901_929441.jpg
+2026-09-15T18:39:04,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183904_030062.jpg
+2026-09-15T18:39:05,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:48.,captured/zone/zone_exit_person_15_20260915_183905_284990.jpg
+2026-09-15T18:39:10,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183910_360189.jpg
+2026-09-15T18:39:10,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_183910_443293.jpg
+2026-09-15T18:39:11,20,ZONE_EXIT,Person exited monitoring zone; dwell=00:34.,captured/zone/zone_exit_person_20_20260915_183911_044693.jpg
+2026-09-15T18:39:11,20,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_20_20260915_183911_366966.jpg
+2026-09-15T18:39:13,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183913_016524.jpg
+2026-09-15T18:39:13,20,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_20_20260915_183913_137921.jpg
+2026-09-15T18:39:13,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_183913_205882.jpg
+2026-09-15T18:39:13,20,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_20_20260915_183913_572483.jpg
+2026-09-15T18:39:15,20,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_20_20260915_183915_654576.jpg
+2026-09-15T18:39:15,20,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_20_20260915_183915_741699.jpg
+2026-09-15T18:39:15,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183915_973329.jpg
+2026-09-15T18:39:17,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_15_20260915_183917_757615.jpg
+2026-09-15T18:39:18,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183918_544464.jpg
+2026-09-15T18:39:20,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_183919_998253.jpg
+2026-09-15T18:39:21,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183921_167187.jpg
+2026-09-15T18:39:22,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_183922_182219.jpg
+2026-09-15T18:39:23,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183923_733799.jpg
+2026-09-15T18:39:25,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_15_20260915_183925_774294.jpg
+2026-09-15T18:39:25,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183925_832095.jpg
+2026-09-15T18:39:29,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_15_20260915_183929_658725.jpg
+2026-09-15T18:39:29,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183929_739985.jpg
+2026-09-15T18:39:31,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_183931_668602.jpg
+2026-09-15T18:39:32,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183932_070775.jpg
+2026-09-15T18:39:33,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_183933_942087.jpg
+2026-09-15T18:39:35,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183935_635463.jpg
+2026-09-15T18:39:36,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_183936_334588.jpg
+2026-09-15T18:39:41,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:03.,captured/zone/zone_exit_person_15_20260915_183941_470431.jpg
+2026-09-15T18:39:42,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_183942_573839.jpg
+2026-09-15T18:39:43,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_183943_511753.jpg
+2026-09-15T18:39:44,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183944_444648.jpg
+2026-09-15T18:39:44,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183944_638747.jpg
+2026-09-15T18:39:47,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183947_502940.jpg
+2026-09-15T18:39:47,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183947_586442.jpg
+2026-09-15T18:39:49,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183949_779077.jpg
+2026-09-15T18:39:49,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183949_927682.jpg
+2026-09-15T18:39:54,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183954_444852.jpg
+2026-09-15T18:39:54,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183954_503235.jpg
+2026-09-15T18:39:57,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_183957_072542.jpg
+2026-09-15T18:39:57,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_183957_162608.jpg
+2026-09-15T18:40:00,4,ZONE_EXIT,Person exited monitoring zone; dwell=02:24.,captured/zone/zone_exit_person_4_20260915_184000_167095.jpg
+2026-09-15T18:40:00,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_184000_676087.jpg
+2026-09-15T18:40:00,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_184000_973573.jpg
+2026-09-15T18:40:01,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_184001_608239.jpg
+2026-09-15T18:40:01,3,ZONE_EXIT,Person exited monitoring zone; dwell=03:56.,captured/zone/zone_exit_person_3_20260915_184001_980722.jpg
+2026-09-15T18:40:05,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_184005_512370.jpg
+2026-09-15T18:40:06,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_184006_318318.jpg
+2026-09-15T18:40:08,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_184008_029503.jpg
+2026-09-15T18:40:09,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_184009_506464.jpg
+2026-09-15T18:40:10,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_184010_136133.jpg
+2026-09-15T18:40:10,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_184010_274438.jpg
+2026-09-15T18:40:10,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_184010_355700.jpg
+2026-09-15T18:40:12,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_4_20260915_184012_538765.jpg
+2026-09-15T18:40:12,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_184012_780269.jpg
+2026-09-15T18:40:14,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_184014_832385.jpg
+2026-09-15T18:40:14,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_184014_913392.jpg
+2026-09-15T18:40:16,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_184016_931772.jpg
+2026-09-15T18:40:17,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_184017_632574.jpg
+2026-09-15T18:40:21,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_184021_135469.jpg
+2026-09-15T18:40:21,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_184021_212956.jpg
+2026-09-15T18:40:24,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_184024_544192.jpg
+2026-09-15T18:40:24,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_184024_633279.jpg
+2026-09-15T18:40:27,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_184027_433535.jpg
+2026-09-15T18:40:27,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_184027_519408.jpg
+2026-09-15T18:40:29,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_184029_417920.jpg
+2026-09-15T18:40:30,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_184030_351706.jpg
+2026-09-15T18:40:32,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_184032_366296.jpg
+2026-09-15T18:40:32,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_184032_601189.jpg
+2026-09-15T18:40:40,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_184040_619360.jpg
+2026-09-15T18:40:40,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_184040_736701.jpg
+2026-09-15T18:40:44,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_184044_555023.jpg
+2026-09-15T18:40:44,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_184044_757783.jpg
+2026-09-15T18:40:50,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_184050_359540.jpg
+2026-09-15T18:40:50,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_184050_504316.jpg
+2026-09-15T18:40:55,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_184055_634522.jpg
+2026-09-15T18:40:55,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_184055_783219.jpg
+2026-09-15T18:40:57,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:38.,captured/zone/zone_exit_person_4_20260915_184057_239175.jpg
+2026-09-15T18:40:57,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184057_555725.jpg
+2026-09-15T18:40:58,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_19_20260915_184058_981320.jpg
+2026-09-15T18:40:59,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_184059_067037.jpg
+2026-09-15T18:41:01,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_184101_080358.jpg
+2026-09-15T18:41:01,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_184101_169492.jpg
+2026-09-15T18:41:03,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_184103_273719.jpg
+2026-09-15T18:41:03,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_184103_416735.jpg
+2026-09-15T18:41:05,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_184105_719007.jpg
+2026-09-15T18:41:05,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_184105_803051.jpg
+2026-09-15T18:41:07,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_184107_904562.jpg
+2026-09-15T18:41:08,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_184108_048761.jpg
+2026-09-15T18:41:10,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_184110_182483.jpg
+2026-09-15T18:41:10,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_184110_355028.jpg
+2026-09-15T18:41:12,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_184112_915974.jpg
+2026-09-15T18:41:13,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_184113_071681.jpg
+2026-09-15T18:41:14,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_184114_941458.jpg
+2026-09-15T18:41:15,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_184115_026580.jpg
+2026-09-15T18:41:15,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_184115_402296.jpg
+2026-09-15T18:41:16,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_4_20260915_184116_804526.jpg
+2026-09-15T18:41:17,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:19.,captured/zone/zone_exit_person_15_20260915_184117_188703.jpg
+2026-09-15T18:41:17,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184117_785813.jpg
+2026-09-15T18:41:19,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_4_20260915_184119_193605.jpg
+2026-09-15T18:41:19,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_184119_250700.jpg
+2026-09-15T18:41:22,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_4_20260915_184122_802827.jpg
+2026-09-15T18:41:22,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_184122_886126.jpg
+2026-09-15T18:41:24,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:06.,captured/zone/zone_exit_person_15_20260915_184124_409593.jpg
+2026-09-15T18:41:24,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184124_962300.jpg
+2026-09-15T18:41:25,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_184125_198110.jpg
+2026-09-15T18:41:25,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_184125_251987.jpg
+2026-09-15T18:41:27,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_184127_583293.jpg
+2026-09-15T18:41:27,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_184127_760113.jpg
+2026-09-15T18:41:30,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_184130_078908.jpg
+2026-09-15T18:41:30,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_184130_147169.jpg
+2026-09-15T18:41:31,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:15.,captured/zone/zone_exit_person_19_20260915_184131_290685.jpg
+2026-09-15T18:41:31,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:06.,captured/zone/zone_exit_person_15_20260915_184131_848735.jpg
+2026-09-15T18:41:33,4,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_4_20260915_184133_761812.jpg
+2026-09-15T18:41:33,4,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_4_20260915_184133_906924.jpg
+2026-09-15T18:41:42,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184142_890751.jpg
+2026-09-15T18:41:43,19,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_19_20260915_184143_018814.jpg
+2026-09-15T18:41:43,19,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_19_20260915_184143_085904.jpg
+2026-09-15T18:41:45,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:02.,captured/zone/zone_exit_person_15_20260915_184145_133779.jpg
+2026-09-15T18:41:48,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184148_979593.jpg
+2026-09-15T18:41:49,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_184149_059669.jpg
+2026-09-15T18:41:51,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184151_708507.jpg
+2026-09-15T18:41:51,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_184151_889393.jpg
+2026-09-15T18:41:54,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184154_056358.jpg
+2026-09-15T18:41:54,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_184154_144275.jpg
+2026-09-15T18:41:56,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184156_335066.jpg
+2026-09-15T18:41:56,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_184156_481181.jpg
+2026-09-15T18:41:59,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_15_20260915_184159_094569.jpg
+2026-09-15T18:41:59,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184159_622184.jpg
+2026-09-15T18:42:01,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_184201_547478.jpg
+2026-09-15T18:42:01,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184201_630588.jpg
+2026-09-15T18:42:03,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_184203_649951.jpg
+2026-09-15T18:42:03,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184203_728528.jpg
+2026-09-15T18:42:05,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_184205_714180.jpg
+2026-09-15T18:42:05,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184205_797918.jpg
+2026-09-15T18:42:07,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_184207_888960.jpg
+2026-09-15T18:42:08,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184208_045495.jpg
+2026-09-15T18:42:09,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_184209_915391.jpg
+2026-09-15T18:42:10,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184210_147492.jpg
+2026-09-15T18:42:10,20,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_20_20260915_184210_733122.jpg
+2026-09-15T18:42:10,20,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_20_20260915_184210_947747.jpg
+2026-09-15T18:42:11,8,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_8_20260915_184211_272149.jpg
+2026-09-15T18:42:11,8,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_8_20260915_184211_277470.jpg
+2026-09-15T18:42:11,22,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_22_20260915_184211_393054.jpg
+2026-09-15T18:42:11,22,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_22_20260915_184211_584360.jpg
+2026-09-15T18:42:12,8,POSTURE_CHANGE,previous=limited_view; confidence=1.00; torso_angle=176.3670492605118; knee_angle=48.45719065657646; hip_angle=56.59589262581712; reason=horizontal torso orientation,captured/fall/posture_change_person_8_20260915_184212_262939.jpg
+2026-09-15T18:42:13,22,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_22_20260915_184213_648468.jpg
+2026-09-15T18:42:13,22,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_22_20260915_184213_880029.jpg
+2026-09-15T18:42:15,22,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_22_20260915_184215_745234.jpg
+2026-09-15T18:42:17,22,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_22_20260915_184217_429008.jpg
+2026-09-15T18:42:18,22,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_22_20260915_184218_748200.jpg
+2026-09-15T18:42:19,22,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_22_20260915_184219_913064.jpg
+2026-09-15T18:42:21,22,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_22_20260915_184221_080856.jpg
+2026-09-15T18:42:22,22,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_22_20260915_184222_013113.jpg
+2026-09-15T18:42:23,22,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_22_20260915_184223_269008.jpg
+2026-09-15T18:42:24,22,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_22_20260915_184224_113516.jpg
+2026-09-15T18:42:25,22,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_22_20260915_184225_597396.jpg
+2026-09-15T18:42:26,22,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_22_20260915_184226_123771.jpg
+2026-09-15T18:42:27,20,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_20_20260915_184227_782029.jpg
+2026-09-15T18:42:27,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_184227_786457.jpg
+2026-09-15T18:42:27,20,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_20_20260915_184227_982957.jpg
+2026-09-15T18:42:28,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_184228_218171.jpg
+2026-09-15T18:42:29,22,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_22_20260915_184229_065869.jpg
+2026-09-15T18:42:29,22,POSTURE_CHANGE,previous=limited_view; confidence=1.00; torso_angle=145.00797980144134; knee_angle=105.13729211335908; hip_angle=88.71085399219093; reason=horizontal torso orientation,captured/fall/posture_change_person_22_20260915_184229_202608.jpg
+2026-09-15T18:42:29,22,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_22_20260915_184229_284648.jpg
+2026-09-15T18:42:30,20,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_20_20260915_184230_767625.jpg
+2026-09-15T18:42:30,20,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_20_20260915_184230_824285.jpg
+2026-09-15T18:42:36,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_184236_601039.jpg
+2026-09-15T18:42:37,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_184237_126819.jpg
+2026-09-15T18:42:38,20,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_20_20260915_184238_502893.jpg
+2026-09-15T18:42:38,20,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_20_20260915_184238_694913.jpg
+2026-09-15T18:42:40,20,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_20_20260915_184240_562239.jpg
+2026-09-15T18:42:40,20,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_20_20260915_184240_738147.jpg
+2026-09-15T18:42:43,20,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_20_20260915_184243_318126.jpg
+2026-09-15T18:42:43,20,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_20_20260915_184243_500276.jpg
+2026-09-15T18:42:49,20,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_20_20260915_184249_281742.jpg
+2026-09-15T18:42:49,20,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_20_20260915_184249_397319.jpg
+2026-09-15T18:42:51,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_184251_252642.jpg
+2026-09-15T18:42:51,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_184251_815087.jpg
+2026-09-15T18:42:52,20,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_20_20260915_184252_149958.jpg
+2026-09-15T18:42:53,20,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_20_20260915_184253_165705.jpg
+2026-09-15T18:42:54,11,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_11_20260915_184254_851602.jpg
+2026-09-15T18:42:55,11,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_11_20260915_184255_491193.jpg
+2026-09-15T18:42:55,11,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_11_20260915_184255_592920.jpg
+2026-09-15T18:42:57,11,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_11_20260915_184257_738222.jpg
+2026-09-15T18:42:58,11,ZONE_EXIT,Person exited monitoring zone; dwell=00:01.,captured/zone/zone_exit_person_11_20260915_184258_786801.jpg
+2026-09-15T18:43:02,11,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_11_20260915_184302_541764.jpg
+2026-09-15T18:43:02,11,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_11_20260915_184302_605948.jpg
+2026-09-15T18:43:07,11,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_11_20260915_184307_118399.jpg
+2026-09-15T18:43:07,11,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_11_20260915_184307_428840.jpg
+2026-09-15T18:43:09,11,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_11_20260915_184309_130732.jpg
+2026-09-15T18:43:09,11,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_11_20260915_184309_538655.jpg
+2026-09-15T18:43:09,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184309_830988.jpg
+2026-09-15T18:43:09,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_184309_917423.jpg
+2026-09-15T18:43:14,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184314_029100.jpg
+2026-09-15T18:43:14,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_184314_465164.jpg
+2026-09-15T18:43:17,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260915_184317_107530.jpg
+2026-09-15T18:43:17,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260915_184317_163380.jpg
+2026-09-15T20:58:47,20,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_20_20260915_205847_450013.jpg
+2026-09-15T20:58:47,20,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_20_20260915_205847_613166.jpg
+2026-09-15T20:58:47,20,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_20_20260915_205847_709020.jpg
+2026-09-15T20:58:51,20,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_20_20260915_205851_246031.jpg
+2026-09-15T20:58:52,20,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_20_20260915_205852_087916.jpg
+2026-09-15T21:02:33,20,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_20_20260915_210233_144647.jpg
+2026-09-15T21:02:33,20,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_20_20260915_210233_295690.jpg
+2026-09-15T21:09:13,9,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_9_20260915_210913_669076.jpg
+2026-09-15T21:09:13,19,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_19_20260915_210913_889998.jpg
+2026-09-15T21:10:20,3,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_3_20260915_211020_296811.jpg
+2026-09-15T21:10:26,6,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_6_20260915_211026_112550.jpg
+2026-09-15T21:14:59,3,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_3_20260915_211459_605194.jpg
+2026-09-15T21:16:13,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_211613_141711.jpg
+2026-09-15T21:16:13,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_211613_244418.jpg
+2026-09-15T21:16:22,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_211622_731989.jpg
+2026-09-15T21:16:22,3,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_3_20260915_211622_787800.jpg
+2026-09-15T21:16:25,3,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_3_20260915_211625_738165.jpg
+2026-09-15T21:16:25,9,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_9_20260915_211625_821380.jpg
+2026-09-18T15:35:58,15,LIMITED_VIEW,Lower body not reliably visible; posture classification suppressed.,captured/limited_view/limited_view_person_15_20260918_153558_020697.jpg
+2026-09-18T15:36:00,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260918_153600_413325.jpg
+2026-09-18T15:36:00,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260918_153600_494973.jpg
+2026-09-18T15:36:06,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260918_153606_512167.jpg
+2026-09-18T15:36:06,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260918_153606_595628.jpg
+2026-09-18T15:36:10,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260918_153610_135535.jpg
+2026-09-18T15:36:10,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260918_153610_194630.jpg
+2026-09-18T15:36:12,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260918_153612_234070.jpg
+2026-09-18T15:36:13,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260918_153613_167187.jpg
+2026-09-18T15:36:15,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260918_153615_288084.jpg
+2026-09-18T15:36:15,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260918_153615_403487.jpg
+2026-09-18T15:36:18,15,ZONE_ENTRY,Person entered monitoring zone.,captured/zone/zone_entry_person_15_20260918_153618_535952.jpg
+2026-09-18T15:36:18,15,ZONE_EXIT,Person exited monitoring zone; dwell=00:00.,captured/zone/zone_exit_person_15_20260918_153618_594162.jpg
