@@ -156,7 +156,109 @@ function StaffOps({ data }) { const zones = data?.staff_coverage || []; const co
 
 function Analytics({ data }) { const zones = data?.zone_stats || []; const customers = data?.customers || []; const max = Math.max(1, ...zones.map(z=>z.customer_count||0)); return <><div className="three-col"><Panel title="Footfall Snapshot" subtitle="Live tracked visitors"><div className="big-number">{customers.length}</div><div className="muted">Active people in the camera field</div></Panel><Panel title="Average Dwell" subtitle="Across active customers"><div className="big-number">{fmtDuration(customers.reduce((s,c)=>s+(c.dwell_seconds||0),0)/Math.max(1,customers.length))}</div><div className="muted">Current session average</div></Panel><Panel title="High Intent" subtitle="Customers with high intent signal"><div className="big-number">{customers.filter(c=>String(c.intent_level).toUpperCase()==='HIGH').length}</div><div className="muted">Potential service opportunities</div></Panel></div><Panel title="Zone Activity" subtitle="Live occupancy distribution"><div className="analytics-bars">{zones.map(z=><div className="analytics-row" key={z.zone}><div><b>{z.zone}</b><span>{z.customer_count} visitors</span></div><div className="analytics-track"><i style={{width:`${Math.max(3,(z.customer_count/max)*100)}%`}}/></div><strong>{z.customer_count}</strong></div>)}{!zones.length&&<Empty>No zone analytics yet.</Empty>}</div></Panel></>; }
 
-function Insights({ data, go }) { const zones = data?.zone_stats || []; const configured=!!data?.staff_tracking_configured; const gaps = configured ? (data?.staff_coverage || []).filter(z=>z.customer_count>0&&!z.staff_present) : []; const high = (data?.customers||[]).filter(c=>String(c.intent_level).toUpperCase()==='HIGH'); return <div className="insight-grid"><Panel title="AI Operations Brief" subtitle="Generated from the current live state"><div className="insight-list">{gaps.length ? gaps.map(g=><div className="insight-card danger" key={`gap-${g.zone}`}><div className="insight-icon"><UserX size={17}/></div><div><b>Staff coverage gap in {g.zone}</b><p>{g.customer_count} customer{g.customer_count===1?' is':'s are'} present without a registered staff tracker. Route an associate to the zone.</p><button className="text-btn" onClick={()=>go('Staff Operations')}>Open staff operations <ArrowUpRight size={12}/></button></div></div>) : <div className="insight-card success"><div className="insight-icon"><Check size={17}/></div><div><b>No current coverage gaps</b><p>Every zone with active customer traffic has a registered staff presence signal.</p></div></div>}{high.length ? <div className="insight-card amber"><div className="insight-icon"><Zap size={17}/></div><div><b>{high.length} high-intent customer{high.length===1?'':'s'} detected</b><p>Review their zones and staff proximity for service opportunities.</p><button className="text-btn" onClick={()=>go('Customer Intelligence')}>Review customers <ArrowUpRight size={12}/></button></div></div> : null}{zones.length ? <div className="insight-card"><div className="insight-icon"><Map size={17}/></div><div><b>Zone activity is being monitored</b><p>{zones.filter(z=>z.customer_count>0).length} zones currently have customer traffic.</p></div></div> : null}</div></Panel><Panel title="AI Assistant" subtitle="Ask about the current store state"><div className="assistant-box"><Bot size={22}/><div><b>Retail floor assistant</b><p>Try questions like “Which zone needs staff?” or “Who needs assistance?”</p><div className="suggestions"><button>Which zone needs staff?</button><button>Who needs assistance?</button><button>Show current alerts</button></div></div></div></Panel></div>; }
+function RecommendationCard({ rec, go }) {
+  const tone = rec.priority === 'critical' ? 'danger' : rec.priority === 'high' ? 'amber' : 'success';
+  const Icon = rec.category === 'STAFFING' ? UserX : rec.category === 'CUSTOMER' ? UserRound : rec.category === 'QUEUE' ? Timer : rec.category === 'TRAFFIC' ? Activity : Bot;
+  return <div className={`insight-card ${tone}`}>
+    <div className="insight-icon"><Icon size={17}/></div>
+    <div className="recommendation-body">
+      <div className="recommendation-top"><b>{rec.title}</b><Badge tone={tone}>{rec.priority}</Badge></div>
+      <p>{rec.reason}</p>
+      <div className="recommendation-action"><strong>Recommended action:</strong> {rec.action}</div>
+      <div className="recommendation-meta"><span>{rec.zone || 'Store'} · {rec.category}</span><span>{Math.round((rec.confidence || 0) * 100)}% confidence</span></div>
+      {rec.category === 'STAFFING' && <button className="text-btn" onClick={()=>go('Staff Operations')}>Open staff operations <ArrowUpRight size={12}/></button>}
+      {rec.category === 'CUSTOMER' && <button className="text-btn" onClick={()=>go('Customer Intelligence')}>Review customer <ArrowUpRight size={12}/></button>}
+      {rec.category === 'QUEUE' && <button className="text-btn" onClick={()=>go('Store Map')}>Open store map <ArrowUpRight size={12}/></button>}
+    </div>
+  </div>;
+}
+
+function Insights({ data, go }) {
+  const recommendations = data?.recommendations || [];
+  const zones = data?.zone_stats || [];
+  const customers = data?.customers || [];
+  const alerts = data?.alerts || [];
+  const high = customers.filter(c => String(c.intent_level).toUpperCase() === 'HIGH');
+  const critical = recommendations.filter(r => r.priority === 'critical').length;
+  const [question, setQuestion] = useState('');
+  const [answer, setAnswer] = useState('');
+
+  const askAssistant = (q) => {
+    const text = String(q || question).trim();
+    if (!text) return;
+    const lower = text.toLowerCase();
+    const uncovered = (data?.staff_coverage || []).filter(z => z.customer_count > 0 && !z.staff_present);
+    let response = '';
+    let target = null;
+
+    if (lower.includes('staff') || lower.includes('zone')) {
+      if (uncovered.length) {
+        const z = [...uncovered].sort((a,b)=>(b.customer_count||0)-(a.customer_count||0))[0];
+        response = `${z.zone} currently needs staff attention: ${z.customer_count} customer(s) are present with no registered staff nearby${z.gap_seconds ? ` for ${Math.round(z.gap_seconds)}s` : ''}.`;
+        target = 'Staff Operations';
+      } else {
+        response = 'No active staff-coverage gaps are currently detected in zones with customers.';
+      }
+    } else if (lower.includes('assistance') || lower.includes('customer') || lower.includes('help')) {
+      if (high.length) {
+        const c = [...high].sort((a,b)=>(b.dwell_seconds||0)-(a.dwell_seconds||0))[0];
+        response = `${high.length} high-intent customer(s) are currently detected. The longest current dwell is ${fmtDuration(c.dwell_seconds || 0)} in ${c.zone || 'an active zone'}.`;
+        target = 'Customer Intelligence';
+      } else {
+        response = 'No high-intent customers are currently flagged for assistance.';
+      }
+    } else if (lower.includes('alert')) {
+      response = alerts.length ? `${alerts.length} live alert(s) are currently in the event feed. ${alerts[0]?.message || ''}` : 'There are no active alerts in the current live state.';
+      target = 'Security & Alerts';
+    } else if (lower.includes('queue') || lower.includes('billing')) {
+      const billing = zones.find(z => String(z.zone || '').toLowerCase().includes('billing'));
+      response = billing ? `Billing currently has ${billing.customer_count || 0} customer(s). Review the Store Map for the latest zone activity.` : 'No Billing zone data is currently available.';
+      target = 'Store Map';
+    } else {
+      response = `I can answer questions about staff coverage, customer assistance, alerts, queues, and active zones using the current live store state.`;
+    }
+    setQuestion(text);
+    setAnswer(response);
+    if (target) go(target);
+  };
+
+  return <div className="insight-grid">
+    <Panel title="AI Store Manager" subtitle="Actionable recommendations generated from live store signals" action={<Badge tone={critical ? 'danger' : 'success'}>{critical ? `${critical} critical` : 'Operational'}</Badge>}>
+      <div className="recommendation-list">
+        {recommendations.length ? recommendations.map(rec => <RecommendationCard key={rec.id} rec={rec} go={go}/>) : <div className="insight-card success"><div className="insight-icon"><Check size={17}/></div><div><b>No immediate action recommended</b><p>The current live signals do not indicate a priority staffing, customer-assistance, or queue intervention.</p></div></div>}
+      </div>
+    </Panel>
+    <div className="insight-side">
+      <Panel title="Decision Summary" subtitle="Why the AI is recommending action">
+        <div className="decision-stats">
+          <div><span>Recommendations</span><b>{recommendations.length}</b></div>
+          <div><span>Critical</span><b>{critical}</b></div>
+          <div><span>High intent</span><b>{high.length}</b></div>
+          <div><span>Active zones</span><b>{zones.filter(z=>z.customer_count>0).length}</b></div>
+        </div>
+      </Panel>
+      <Panel title="AI Assistant" subtitle="Ask about the current live store state">
+        <div className="assistant-box">
+          <Bot size={22}/>
+          <div className="assistant-content">
+            <b>Retail floor assistant</b>
+            <p>Ask about staff coverage, customers, alerts, queues or active zones.</p>
+            <div className="assistant-input-row">
+              <input value={question} onChange={e=>setQuestion(e.target.value)} onKeyDown={e=>{if(e.key==='Enter') askAssistant()}} placeholder="e.g. Which zone needs staff?" aria-label="Ask retail floor assistant" />
+              <button className="ghost-btn" onClick={()=>askAssistant()}>Ask <ArrowUpRight size={12}/></button>
+            </div>
+            <div className="suggestions">
+              <button type="button" onClick={()=>askAssistant('Which zone needs staff?')}>Which zone needs staff?</button>
+              <button type="button" onClick={()=>askAssistant('Who needs assistance?')}>Who needs assistance?</button>
+              <button type="button" onClick={()=>askAssistant('Show current alerts')}>Show current alerts</button>
+            </div>
+            {answer && <div className="assistant-answer"><span>AI</span><p>{answer}</p></div>}
+          </div>
+        </div>
+      </Panel>
+    </div>
+  </div>;
+}
 
 function Notifications({ data }) {
   const n = data?.notification_status || {};
