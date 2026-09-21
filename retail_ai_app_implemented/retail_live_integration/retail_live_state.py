@@ -1,8 +1,9 @@
 """Shared live state between the AI camera loop and FastAPI."""
 from __future__ import annotations
-import threading, time, json
+import threading, time
 from collections import deque
 import cv2
+
 
 class RetailLiveState:
     def __init__(self):
@@ -16,8 +17,13 @@ class RetailLiveState:
         self.alerts = deque(maxlen=200)
         self.events = deque(maxlen=500)
         self.metrics = {"customers": 0, "high_intent": 0, "alerts": 0}
+        self.zone_stats = []
+        self.staff_coverage = []
+        self.staff_tracking_configured = False
+        self.acknowledged = set()
+        self.notification_status = {}
 
-    def publish(self, frame, camera_id, tracks, insights, alerts, fps=0.0):
+    def publish(self, frame, camera_id, tracks, insights, alerts, fps=0.0, operational_alerts=None, zone_stats=None, staff_coverage=None, staff_tracking_configured=False):
         ok, encoded = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 82])
         with self.lock:
             if ok:
@@ -36,7 +42,7 @@ class RetailLiveState:
                     "customer_id": f"CUST-{int(ins.person_id):04d}",
                     "person_id": int(ins.person_id),
                     "camera_id": camera_id,
-                    "zone": getattr(ins, "zone", None) or "TV",
+                    "zone": getattr(ins, "zone", None) or "Unknown",
                     "dwell_seconds": round(float(getattr(ins, "dwell_seconds", 0)), 1),
                     "intent_score": int(getattr(ins, "intent_score", 0)),
                     "intent_level": str(getattr(ins, "intent_level", "LOW")),
@@ -44,9 +50,10 @@ class RetailLiveState:
                     "phone_comparison": bool(getattr(ins, "phone_comparison", False)),
                     "staff_nearby": getattr(ins, "staff_nearby", None),
                     "activity": str(getattr(t, "state", "unknown")),
-                    "bbox": [int(x) for x in getattr(t, "bbox", (0,0,0,0))],
+                    "bbox": [int(x) for x in getattr(t, "bbox", (0, 0, 0, 0))],
                 }
             self.customers = rows
+
             for alert in alerts:
                 item = {
                     "id": f"{time.time_ns()}",
@@ -56,14 +63,45 @@ class RetailLiveState:
                     "type": "HIGH_INTENT_CUSTOMER",
                     "severity": "high",
                     "message": getattr(alert, "alert", None) or "High-intent customer detected.",
+                    "acknowledged": False,
                 }
                 self.alerts.appendleft(item)
-                self.events.appendleft(item)
+                self.events.appendleft(dict(item))
+
+            for item in (operational_alerts or []):
+                item = dict(item)
+                item.setdefault("id", f"{time.time_ns()}")
+                item.setdefault("timestamp", time.time())
+                item.setdefault("camera_id", camera_id)
+                item.setdefault("severity", "high")
+                item["acknowledged"] = item["id"] in self.acknowledged
+                self.alerts.appendleft(item)
+                self.events.appendleft(dict(item))
+
+            if zone_stats is not None:
+                self.zone_stats = list(zone_stats)
+            if staff_coverage is not None:
+                self.staff_coverage = list(staff_coverage)
+            self.staff_tracking_configured = bool(staff_tracking_configured)
+
             self.metrics = {
                 "customers": len(rows),
                 "high_intent": sum(1 for x in rows.values() if x["intent_level"].upper() == "HIGH"),
-                "alerts": len(self.alerts),
+                "alerts": sum(1 for x in self.alerts if not x.get("acknowledged", False)),
             }
+
+    def set_notification_status(self, status):
+        with self.lock:
+            self.notification_status = dict(status or {})
+
+    def acknowledge(self, alert_id):
+        with self.lock:
+            self.acknowledged.add(str(alert_id))
+            for item in self.alerts:
+                if str(item.get("id")) == str(alert_id):
+                    item["acknowledged"] = True
+            self.metrics["alerts"] = sum(1 for x in self.alerts if not x.get("acknowledged", False))
+            return any(str(x.get("id")) == str(alert_id) for x in self.alerts)
 
     def snapshot(self):
         with self.lock:
@@ -76,7 +114,12 @@ class RetailLiveState:
                 "alerts": list(self.alerts)[:50],
                 "events": list(self.events)[:100],
                 "metrics": dict(self.metrics),
+                "zone_stats": list(self.zone_stats),
+                "staff_coverage": list(self.staff_coverage),
+                "staff_tracking_configured": self.staff_tracking_configured,
                 "cameras": [{"camera_id": self.camera_id, "status": self.camera_status, "fps": self.fps}],
+                "notification_status": dict(self.notification_status),
             }
+
 
 LIVE_STATE = RetailLiveState()

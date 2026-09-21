@@ -12,6 +12,8 @@ import cv2
 import numpy as np
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if not (PROJECT_ROOT / "config.py").exists():
+    PROJECT_ROOT = PROJECT_ROOT.parent
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -32,6 +34,7 @@ from store_intelligence import StoreIntelligence
 from retail_notification_service import RetailNotificationService
 from retail_live_state import LIVE_STATE
 from retail_live_api import start_live_api
+from retail_whatsapp_service import RetailWhatsAppService
 import threading
 
 # ============================================================
@@ -373,12 +376,7 @@ RETAIL_CAMERA_ID = str(
 # IMPORTANT:
 # An ordinary detected person is NEVER assumed to be staff.
 def load_retail_staff_ids():
-    raw = str(
-        cfg(
-            "RETAIL_STAFF_IDS",
-            ""
-        )
-    ).strip()
+    raw = str(os.getenv("RETAIL_STAFF_IDS", cfg("RETAIL_STAFF_IDS", ""))).strip()
 
     if not raw:
         return set()
@@ -462,6 +460,25 @@ RETAIL_ALERT_COOLDOWN_SECONDS = float(
         120
     )
 )
+
+# Zone-level staff coverage alerting. A gap is raised only when a zone
+# has customers, no registered staff tracker in that zone, and the
+# condition remains true for the confirmation window.
+RETAIL_ZONE_STAFF_CONFIRM_SECONDS = float(
+    cfg("RETAIL_ZONE_STAFF_CONFIRM_SECONDS", 8)
+)
+RETAIL_ZONE_STAFF_ALERT_COOLDOWN_SECONDS = float(
+    cfg("RETAIL_ZONE_STAFF_ALERT_COOLDOWN_SECONDS", 120)
+)
+RETAIL_ZONE_STAFF_ESCALATION_SECONDS = float(
+    cfg("RETAIL_ZONE_STAFF_ESCALATION_SECONDS", 60)
+)
+RETAIL_QUEUE_ALERT_THRESHOLD = int(cfg("RETAIL_QUEUE_ALERT_THRESHOLD", 5))
+RETAIL_QUEUE_ALERT_COOLDOWN_SECONDS = float(cfg("RETAIL_QUEUE_ALERT_COOLDOWN_SECONDS", 180))
+ZONE_STAFF_GAP_STARTED = {}
+ZONE_STAFF_LAST_ALERT = {}
+ZONE_STAFF_ESCALATED = {}
+QUEUE_ALERT_LAST_SENT = {}
 
 
 SITTING_DWELL_SECONDS = cfg(
@@ -2627,6 +2644,8 @@ def main():
 
     interaction_tracker = InteractionTrackerBridge()
     retail_notifications = RetailNotificationService()
+    retail_whatsapp = RetailWhatsAppService()
+    LIVE_STATE.set_notification_status(retail_whatsapp.status())
 
     print(
         "[INFO] Retail sales intelligence ready."
@@ -3140,6 +3159,97 @@ def main():
                         store_alert.message,
                         "retail_sales",
                     )
+
+            # =================================================
+            # LIVE ZONE + STAFF COVERAGE MONITORING
+            # =================================================
+            zone_customer_counts = {name: 0 for name in STORE_ZONES}
+            zone_staff_present = {name: False for name in STORE_ZONES}
+
+            for track in tracks:
+                if getattr(track, "missed", False):
+                    continue
+                center = getattr(track, "center", None)
+                if center is None:
+                    continue
+                zone_name = store_intelligence.find_zone(
+                    RETAIL_CAMERA_ID, center, w, h
+                )
+                if zone_name is None:
+                    continue
+                if int(getattr(track, "id", -1)) in RETAIL_STAFF_IDS:
+                    zone_staff_present[zone_name] = True
+                else:
+                    zone_customer_counts[zone_name] += 1
+
+            zone_stats = []
+            staff_coverage = []
+            operational_alerts = []
+
+            for zone_name in STORE_ZONES:
+                customer_count = zone_customer_counts.get(zone_name, 0)
+                staff_present = zone_staff_present.get(zone_name, False)
+                gap_key = f"{RETAIL_CAMERA_ID}:{zone_name}"
+
+                if customer_count > 0 and RETAIL_STAFF_IDS and not staff_present:
+                    started = ZONE_STAFF_GAP_STARTED.setdefault(gap_key, now)
+                    gap_duration = max(0.0, now - started)
+                    last_alert = ZONE_STAFF_LAST_ALERT.get(gap_key, 0.0)
+                    if (
+                        gap_duration >= RETAIL_ZONE_STAFF_CONFIRM_SECONDS
+                        and now - last_alert >= RETAIL_ZONE_STAFF_ALERT_COOLDOWN_SECONDS
+                    ):
+                        message = (
+                            f"Staff coverage gap in {zone_name}: "
+                            f"{customer_count} customer(s) detected with no registered staff nearby."
+                        )
+                        operational_alerts.append({
+                            "type": "STAFF_ABSENT_ZONE",
+                            "severity": "high",
+                            "zone": zone_name,
+                            "customer_count": customer_count,
+                            "message": message,
+                        })
+                        staff_message = (
+                            "🚨 STAFF COVERAGE GAP\n\n" + message +
+                            "\n\nPlease assign a sales associate to this zone."
+                        )
+                        try:
+                            retail_notifications.send_staff_alert(staff_message)
+                        except Exception as exc:
+                            print(f"[WARNING] Staff coverage notification failed: {exc}")
+                        try:
+                            wa_result = retail_whatsapp.send_alert(
+                                staff_message, zone=zone_name,
+                                variables={"1": zone_name, "2": str(customer_count)}
+                            )
+                            if wa_result.get("sent"):
+                                print(f"[INFO] WhatsApp staff alert sent for {zone_name}")
+                            elif wa_result.get("reason") not in {"disabled", "not_configured"}:
+                                print(f"[WARNING] WhatsApp staff alert: {wa_result}")
+                        except Exception as exc:
+                            print(f"[WARNING] WhatsApp staff alert failed: {exc}")
+                        ZONE_STAFF_LAST_ALERT[gap_key] = now
+                        try:
+                            capture_and_log(
+                                frame, 0, "STAFF_ABSENT_ZONE", "high", message, "retail_operations"
+                            )
+                        except Exception as exc:
+                            print(f"[WARNING] Staff coverage event logging failed: {exc}")
+                else:
+                    ZONE_STAFF_GAP_STARTED.pop(gap_key, None)
+
+                zone_stats.append({
+                    "zone": zone_name,
+                    "customer_count": customer_count,
+                    "staff_present": staff_present,
+                })
+                staff_coverage.append({
+                    "zone": zone_name,
+                    "customer_count": customer_count,
+                    "staff_present": staff_present,
+                    "gap_seconds": round(max(0.0, now - ZONE_STAFF_GAP_STARTED.get(gap_key, now)), 1) if customer_count > 0 and not staff_present else 0.0,
+                })
 
             store_analytics = (
                 store_intelligence.store_analytics()
@@ -4460,6 +4570,61 @@ def main():
             # Store intelligence status
             # -------------------------------------------------
 
+            # Escalate persistent coverage gaps and queue buildup.
+            for zone_name in STORE_ZONES:
+                gap_key = f"{RETAIL_CAMERA_ID}:{zone_name}"
+                if zone_customer_counts.get(zone_name, 0) > 0 and RETAIL_STAFF_IDS and not zone_staff_present.get(zone_name, False):
+                    started = ZONE_STAFF_GAP_STARTED.get(gap_key)
+                    if started and now - started >= RETAIL_ZONE_STAFF_ESCALATION_SECONDS and not ZONE_STAFF_ESCALATED.get(gap_key, False):
+                        count = zone_customer_counts[zone_name]
+                        escalation = (
+                            f"🚨 ESCALATION: {zone_name} has had no registered staff for "
+                            f"{int(now-started)}s while {count} customer(s) are present."
+                        )
+                        operational_alerts.append({
+                            "type": "STAFF_COVERAGE_ESCALATION",
+                            "severity": "critical",
+                            "zone": zone_name,
+                            "customer_count": count,
+                            "message": escalation,
+                        })
+                        try:
+                            retail_notifications.send_staff_alert(escalation)
+                        except Exception as exc:
+                            print(f"[WARNING] Escalation notification failed: {exc}")
+                        try:
+                            retail_whatsapp.send_alert(escalation, zone=zone_name, variables={"1": zone_name, "2": str(count)})
+                        except Exception as exc:
+                            print(f"[WARNING] WhatsApp escalation failed: {exc}")
+                        ZONE_STAFF_ESCALATED[gap_key] = True
+                else:
+                    ZONE_STAFF_ESCALATED.pop(gap_key, None)
+
+            # Billing/queue pressure alert from tracked people in the Billing zone.
+            billing_count = zone_customer_counts.get("Billing", 0)
+            if billing_count >= RETAIL_QUEUE_ALERT_THRESHOLD:
+                last_queue = QUEUE_ALERT_LAST_SENT.get(RETAIL_CAMERA_ID, 0.0)
+                if now - last_queue >= RETAIL_QUEUE_ALERT_COOLDOWN_SECONDS:
+                    queue_message = (
+                        f"Queue buildup in Billing: {billing_count} customers detected. "
+                        "Consider opening another counter or assigning staff."
+                    )
+                    operational_alerts.append({
+                        "type": "QUEUE_BUILDUP",
+                        "severity": "high",
+                        "zone": "Billing",
+                        "customer_count": billing_count,
+                        "message": queue_message,
+                    })
+                    try:
+                        retail_notifications.send_staff_alert("⚠️ " + queue_message)
+                        retail_whatsapp.send_alert("⚠️ " + queue_message, zone="Billing", variables={"1": "Billing", "2": str(billing_count)})
+                    except Exception as exc:
+                        print(f"[WARNING] Queue notification failed: {exc}")
+                    QUEUE_ALERT_LAST_SENT[RETAIL_CAMERA_ID] = now
+
+            LIVE_STATE.set_notification_status(retail_whatsapp.status())
+
             store_kpi_text = (
                 "STORE: "
                 f"{store_analytics.get('active_customers', 0)} customers | "
@@ -4492,6 +4657,10 @@ def main():
                     tracks=tracks,
                     insights=retail_insights,
                     alerts=retail_alerts,
+                    operational_alerts=operational_alerts,
+                    zone_stats=zone_stats,
+                    staff_coverage=staff_coverage,
+                    staff_tracking_configured=bool(RETAIL_STAFF_IDS),
                     fps=(1.0 / max(time.monotonic() - loop_started, 1e-6)),
                 )
             except Exception as exc:

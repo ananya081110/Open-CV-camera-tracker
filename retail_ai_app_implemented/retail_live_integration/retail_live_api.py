@@ -1,7 +1,7 @@
 """FastAPI server attached to the running AI camera process."""
 from __future__ import annotations
 import asyncio, time
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import uvicorn
@@ -42,6 +42,21 @@ def alerts():
 @app.get("/api/v1/events")
 def events():
     return LIVE_STATE.snapshot()["events"]
+
+@app.post("/api/v1/alerts/{alert_id}/ack")
+def acknowledge_alert(alert_id: str):
+    if not LIVE_STATE.acknowledge(alert_id):
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return {"status": "acknowledged", "alert_id": alert_id}
+
+@app.get("/api/v1/notifications")
+def notifications():
+    return LIVE_STATE.snapshot().get("notification_status", {})
+
+@app.get("/api/v1/zones")
+def zones():
+    s = LIVE_STATE.snapshot()
+    return {"zones": s["zone_stats"], "staff_coverage": s["staff_coverage"]}
 
 @app.get("/api/v1/cameras/{camera_id}")
 def camera(camera_id: str):
