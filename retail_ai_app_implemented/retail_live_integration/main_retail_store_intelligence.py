@@ -2476,6 +2476,84 @@ def retail_draw_unattended(
     )
 
 # ============================================================
+# AI STORE MANAGER RECOMMENDATIONS
+# ============================================================
+
+def build_store_recommendations(zone_stats, staff_coverage, retail_insights, billing_count=0):
+    """Convert live retail signals into concise, actionable store-manager recommendations."""
+    recommendations = []
+    now = time.time()
+
+    # Staff coverage gaps: route an associate to the zone.
+    for zone in staff_coverage or []:
+        count = int(zone.get("customer_count", 0) or 0)
+        gap = float(zone.get("gap_seconds", 0) or 0)
+        if count > 0 and not zone.get("staff_present"):
+            priority = "critical" if gap >= RETAIL_ZONE_STAFF_ESCALATION_SECONDS else "high"
+            recommendations.append({
+                "id": f"staff-{zone.get('zone')}",
+                "priority": priority,
+                "category": "STAFFING",
+                "zone": zone.get("zone"),
+                "title": f"Assign staff to {zone.get('zone')}",
+                "reason": f"{count} customer(s) are present with no registered staff nearby for {int(gap)}s.",
+                "action": "Route the nearest available sales associate to this zone.",
+                "confidence": 0.96 if gap >= 10 else 0.88,
+                "updated_at": now,
+            })
+
+    # High-intent unattended customers: prioritize direct assistance.
+    for insight in retail_insights or []:
+        if str(getattr(insight, "intent_level", "")).upper() == "HIGH" and getattr(insight, "staff_nearby", None) is False:
+            dwell = int(max(0, getattr(insight, "dwell_seconds", 0)))
+            recommendations.append({
+                "id": f"intent-{getattr(insight, 'person_id', 0)}",
+                "priority": "critical" if dwell >= 90 else "high",
+                "category": "CUSTOMER",
+                "zone": getattr(insight, "zone", None) or "Unknown",
+                "title": "Assist high-intent customer",
+                "reason": f"Customer #{getattr(insight, 'person_id', 0)} has high purchase intent and no staff nearby; dwell {dwell}s.",
+                "action": "Send a sales associate to start a product consultation.",
+                "confidence": 0.93,
+                "updated_at": now,
+            })
+
+    # Queue pressure: recommend capacity reallocation.
+    if billing_count >= RETAIL_QUEUE_ALERT_THRESHOLD:
+        recommendations.append({
+            "id": "queue-billing",
+            "priority": "high",
+            "category": "QUEUE",
+            "zone": "Billing",
+            "title": "Increase Billing capacity",
+            "reason": f"Billing currently has {billing_count} tracked customers, above the configured threshold of {RETAIL_QUEUE_ALERT_THRESHOLD}.",
+            "action": "Open an additional counter or temporarily reassign available staff to Billing.",
+            "confidence": 0.91,
+            "updated_at": now,
+        })
+
+    # High-traffic zones with coverage are still worth monitoring.
+    busy = sorted((z for z in zone_stats or [] if z.get("customer_count", 0) > 0), key=lambda z: z.get("customer_count", 0), reverse=True)
+    if busy and all(r.get("zone") != busy[0].get("zone") for r in recommendations):
+        z = busy[0]
+        recommendations.append({
+            "id": f"traffic-{z.get('zone')}",
+            "priority": "medium",
+            "category": "TRAFFIC",
+            "zone": z.get("zone"),
+            "title": f"Monitor traffic in {z.get('zone')}",
+            "reason": f"{z.get('customer_count', 0)} customers currently occupy the busiest active zone.",
+            "action": "Watch dwell and staff response closely as traffic continues.",
+            "confidence": 0.78,
+            "updated_at": now,
+        })
+
+    priority_rank = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    recommendations.sort(key=lambda r: (priority_rank.get(r.get("priority"), 9), -float(r.get("confidence", 0))))
+    return recommendations[:12]
+
+
+# ============================================================
 # MAIN
 # ============================================================
 
@@ -4623,6 +4701,13 @@ def main():
                         print(f"[WARNING] Queue notification failed: {exc}")
                     QUEUE_ALERT_LAST_SENT[RETAIL_CAMERA_ID] = now
 
+            recommendations = build_store_recommendations(
+                zone_stats=zone_stats,
+                staff_coverage=staff_coverage,
+                retail_insights=retail_insights,
+                billing_count=billing_count,
+            )
+            LIVE_STATE.set_recommendations(recommendations)
             LIVE_STATE.set_notification_status(retail_whatsapp.status())
 
             store_kpi_text = (

@@ -22,6 +22,7 @@ class RetailLiveState:
         self.staff_tracking_configured = False
         self.acknowledged = set()
         self.notification_status = {}
+        self.recommendations = []
 
     def publish(self, frame, camera_id, tracks, insights, alerts, fps=0.0, operational_alerts=None, zone_stats=None, staff_coverage=None, staff_tracking_configured=False):
         ok, encoded = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 82])
@@ -90,6 +91,10 @@ class RetailLiveState:
                 "alerts": sum(1 for x in self.alerts if not x.get("acknowledged", False)),
             }
 
+    def set_recommendations(self, recommendations):
+        with self.lock:
+            self.recommendations = list(recommendations or [])[:20]
+
     def set_notification_status(self, status):
         with self.lock:
             self.notification_status = dict(status or {})
@@ -119,6 +124,7 @@ class RetailLiveState:
                 "staff_tracking_configured": self.staff_tracking_configured,
                 "cameras": [{"camera_id": self.camera_id, "status": self.camera_status, "fps": self.fps}],
                 "notification_status": dict(self.notification_status),
+                "recommendations": list(self.recommendations),
             }
 
 
