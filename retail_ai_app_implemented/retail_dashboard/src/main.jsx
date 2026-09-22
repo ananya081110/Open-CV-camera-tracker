@@ -20,6 +20,7 @@ const NAV = [
   ['Store Map', Map, 'OPERATIONS'],
   ['Staff Operations', UserCheck, 'OPERATIONS'],
   ['Store Analytics', BarChart3, 'INTELLIGENCE'],
+  ['Operations Intelligence', Gauge, 'INTELLIGENCE'],
   ['AI Insights', Bot, 'INTELLIGENCE'],
   ['Security & Alerts', ShieldAlert, 'SECURITY'],
   ['Notifications', MessageSquare, 'SECURITY'],
@@ -156,6 +157,25 @@ function StaffOps({ data }) { const zones = data?.staff_coverage || []; const co
 
 function Analytics({ data }) { const zones = data?.zone_stats || []; const customers = data?.customers || []; const max = Math.max(1, ...zones.map(z=>z.customer_count||0)); return <><div className="three-col"><Panel title="Footfall Snapshot" subtitle="Live tracked visitors"><div className="big-number">{customers.length}</div><div className="muted">Active people in the camera field</div></Panel><Panel title="Average Dwell" subtitle="Across active customers"><div className="big-number">{fmtDuration(customers.reduce((s,c)=>s+(c.dwell_seconds||0),0)/Math.max(1,customers.length))}</div><div className="muted">Current session average</div></Panel><Panel title="High Intent" subtitle="Customers with high intent signal"><div className="big-number">{customers.filter(c=>String(c.intent_level).toUpperCase()==='HIGH').length}</div><div className="muted">Potential service opportunities</div></Panel></div><Panel title="Zone Activity" subtitle="Live occupancy distribution"><div className="analytics-bars">{zones.map(z=><div className="analytics-row" key={z.zone}><div><b>{z.zone}</b><span>{z.customer_count} visitors</span></div><div className="analytics-track"><i style={{width:`${Math.max(3,(z.customer_count/max)*100)}%`}}/></div><strong>{z.customer_count}</strong></div>)}{!zones.length&&<Empty>No zone analytics yet.</Empty>}</div></Panel></>; }
 
+function OperationsIntelligence({ data, go }) {
+  const m = data?.operational_metrics || {};
+  const anomalies = data?.anomalies || [];
+  const recs = data?.recommendations || [];
+  const alerts = data?.alerts || [];
+  const exportReport = () => {
+    const payload = { generated_at: new Date().toISOString(), operational_metrics: m, anomalies, recommendations: recs, alerts: alerts.slice(0, 50), zones: data?.zone_stats || [] };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `retail-ai-report-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
+  };
+  return <div className="ops-intel">
+    <div className="hero-strip"><div><div className="eyebrow">OPERATIONAL INTELLIGENCE</div><h1>Store Performance & Exceptions</h1><p>Detect unusual traffic, measure response performance and prioritize operational action.</p></div><button className="ghost-btn" onClick={exportReport}><ArrowUpRight size={13}/> Export live report</button></div>
+    <section className="stats"><Stat icon={Timer} label="AVG RESPONSE" value={m.avg_response_seconds ? `${Math.round(m.avg_response_seconds)}s` : '—'} detail={`${m.resolved_alerts || 0} resolved alerts`} tone="blue"/><Stat icon={Activity} label="PEAK ZONE" value={m.peak_zone || '—'} detail={`${m.peak_zone_customers || 0} current visitors`} tone="amber"/><Stat icon={CircleAlert} label="ANOMALIES" value={m.anomaly_count || 0} detail="Unusual traffic patterns" tone="red"/><Stat icon={Bot} label="AI ACTIONS" value={recs.length} detail="Current recommendations" tone="green"/></section>
+    <div className="two-col"><Panel title="Anomaly Detection" subtitle="Rolling baseline from recent zone observations">{anomalies.length ? <div className="anomaly-list">{anomalies.map(a=><div className="anomaly-card" key={`${a.zone}-${a.type}`}><div><b>{a.zone}</b><span>{a.type.replaceAll('_',' ')} · z-score {a.z_score}</span></div><Badge tone={a.severity==='high'?'danger':'warning'}>{a.severity}</Badge><p>{a.message}</p></div>)}</div> : <Empty>No unusual zone patterns detected yet. More observations will improve the baseline.</Empty>}</Panel>
+      <Panel title="Operational Response" subtitle="How quickly the team is resolving AI alerts"><div className="response-panel"><div><span>Average response</span><b>{m.avg_response_seconds ? `${m.avg_response_seconds}s` : 'No resolved alerts'}</b></div><div><span>Resolved alerts</span><b>{m.resolved_alerts || 0}</b></div><div><span>Current alerts</span><b>{alerts.filter(a=>!a.acknowledged).length}</b></div><button className="text-btn" onClick={()=>go('Security & Alerts')}>Review alert queue <ArrowUpRight size={12}/></button></div></Panel></div>
+    <Panel title="AI Action Queue" subtitle="Recommended next actions ranked by priority"><div className="recommendation-list">{recs.slice(0,6).map(r=><RecommendationCard key={r.id} rec={r} go={go}/>)}{!recs.length&&<Empty>No actions are currently recommended.</Empty>}</div></Panel>
+  </div>;
+}
+
 function RecommendationCard({ rec, go }) {
   const tone = rec.priority === 'critical' ? 'danger' : rec.priority === 'high' ? 'amber' : 'success';
   const Icon = rec.category === 'STAFFING' ? UserX : rec.category === 'CUSTOMER' ? UserRound : rec.category === 'QUEUE' ? Timer : rec.category === 'TRAFFIC' ? Activity : Bot;
@@ -214,6 +234,14 @@ function Insights({ data, go }) {
       const billing = zones.find(z => String(z.zone || '').toLowerCase().includes('billing'));
       response = billing ? `Billing currently has ${billing.customer_count || 0} customer(s). Review the Store Map for the latest zone activity.` : 'No Billing zone data is currently available.';
       target = 'Store Map';
+    } else if (lower.includes('anomal') || lower.includes('unusual') || lower.includes('spike')) {
+      const anomalies = data?.anomalies || [];
+      response = anomalies.length ? anomalies.map(a => `${a.zone}: ${a.message}`).join(' ') : 'No unusual traffic patterns are currently detected. The anomaly engine needs a few observations to establish a stronger baseline.';
+      target = 'Operations Intelligence';
+    } else if (lower.includes('response') || lower.includes('performance')) {
+      const m = data?.operational_metrics || {};
+      response = m.resolved_alerts ? `Average alert response is ${Math.round(m.avg_response_seconds || 0)} seconds across ${m.resolved_alerts} resolved alert(s).` : 'No acknowledged alerts have been measured yet, so response-time performance is not available.';
+      target = 'Operations Intelligence';
     } else {
       response = `I can answer questions about staff coverage, customer assistance, alerts, queues, and active zones using the current live store state.`;
     }
@@ -250,7 +278,7 @@ function Insights({ data, go }) {
             <div className="suggestions">
               <button type="button" onClick={()=>askAssistant('Which zone needs staff?')}>Which zone needs staff?</button>
               <button type="button" onClick={()=>askAssistant('Who needs assistance?')}>Who needs assistance?</button>
-              <button type="button" onClick={()=>askAssistant('Show current alerts')}>Show current alerts</button>
+              <button type="button" onClick={()=>askAssistant('Show current alerts')}>Show current alerts</button><button type="button" onClick={()=>askAssistant('Any unusual traffic?')}>Any unusual traffic?</button>
             </div>
             {answer && <div className="assistant-answer"><span>AI</span><p>{answer}</p></div>}
           </div>
@@ -309,6 +337,7 @@ function App() {
       case 'Store Map': return <StoreMap {...common}/>;
       case 'Staff Operations': return <StaffOps {...common}/>;
       case 'Store Analytics': return <Analytics {...common}/>;
+      case 'Operations Intelligence': return <OperationsIntelligence {...common}/>;
       case 'AI Insights': return <Insights {...common}/>;
       case 'Security & Alerts': return <Alerts {...common}/>;
       case 'Notifications': return <Notifications {...common}/>;

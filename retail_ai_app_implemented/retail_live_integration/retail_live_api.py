@@ -49,6 +49,11 @@ def acknowledge_alert(alert_id: str):
         raise HTTPException(status_code=404, detail="Alert not found")
     return {"status": "acknowledged", "alert_id": alert_id}
 
+@app.get("/api/v1/analytics")
+def analytics():
+    s = LIVE_STATE.snapshot()
+    return {"operational_metrics": s.get("operational_metrics", {}), "anomalies": s.get("anomalies", []), "zone_history": s.get("zone_history", [])}
+
 @app.get("/api/v1/notifications")
 def notifications():
     return LIVE_STATE.snapshot().get("notification_status", {})

@@ -6,3 +6,26 @@ __pycache__/
 models/*.task
 logs/events.csv
 alerts/*.jpg
+node_modules/
+__pycache__/
+*.pyc
+retail_ai_app_implemented/retail_live_integration/logs/
+
+# Runtime / generated files
+logs/
+captured/
+*.db
+
+# ML model binaries
+*.pt
+*.onnx
+
+# Archives
+*.zip
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc

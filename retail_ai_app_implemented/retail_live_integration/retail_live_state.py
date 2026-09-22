@@ -2,6 +2,7 @@
 from __future__ import annotations
 import threading, time
 from collections import deque
+import statistics
 import cv2
 
 
@@ -23,6 +24,9 @@ class RetailLiveState:
         self.acknowledged = set()
         self.notification_status = {}
         self.recommendations = []
+        self.zone_history = deque(maxlen=120)
+        self.response_times = deque(maxlen=100)
+        self.anomalies = []
 
     def publish(self, frame, camera_id, tracks, insights, alerts, fps=0.0, operational_alerts=None, zone_stats=None, staff_coverage=None, staff_tracking_configured=False):
         ok, encoded = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 82])
@@ -81,6 +85,32 @@ class RetailLiveState:
 
             if zone_stats is not None:
                 self.zone_stats = list(zone_stats)
+                sample = {
+                    "timestamp": time.time(),
+                    "zones": {str(z.get("zone")): int(z.get("customer_count", 0) or 0) for z in zone_stats},
+                }
+                self.zone_history.append(sample)
+                anomalies = []
+                history = list(self.zone_history)
+                for z in zone_stats:
+                    name = str(z.get("zone"))
+                    current = int(z.get("customer_count", 0) or 0)
+                    prior = [int(h.get("zones", {}).get(name, 0)) for h in history[:-1]][-30:]
+                    if len(prior) >= 6:
+                        mean = statistics.mean(prior)
+                        stdev = statistics.pstdev(prior) or 1.0
+                        zscore = (current - mean) / stdev
+                        if abs(zscore) >= 2.0 and current > 0:
+                            anomalies.append({
+                                "zone": name,
+                                "type": "TRAFFIC_SPIKE" if zscore > 0 else "TRAFFIC_DROP",
+                                "severity": "high" if abs(zscore) >= 3 else "medium",
+                                "current": current,
+                                "baseline": round(mean, 1),
+                                "z_score": round(zscore, 2),
+                                "message": f"{name} has unusual traffic: {current} customer(s) vs baseline {mean:.1f}.",
+                            })
+                self.anomalies = anomalies[:10]
             if staff_coverage is not None:
                 self.staff_coverage = list(staff_coverage)
             self.staff_tracking_configured = bool(staff_tracking_configured)
@@ -102,9 +132,17 @@ class RetailLiveState:
     def acknowledge(self, alert_id):
         with self.lock:
             self.acknowledged.add(str(alert_id))
+            response_seconds = None
+            now = time.time()
             for item in self.alerts:
                 if str(item.get("id")) == str(alert_id):
                     item["acknowledged"] = True
+                    item["acknowledged_at"] = now
+                    response_seconds = max(0.0, now - float(item.get("timestamp", now)))
+                    item["response_seconds"] = round(response_seconds, 1)
+                    break
+            if response_seconds is not None:
+                self.response_times.append(response_seconds)
             self.metrics["alerts"] = sum(1 for x in self.alerts if not x.get("acknowledged", False))
             return any(str(x.get("id")) == str(alert_id) for x in self.alerts)
 
@@ -125,6 +163,15 @@ class RetailLiveState:
                 "cameras": [{"camera_id": self.camera_id, "status": self.camera_status, "fps": self.fps}],
                 "notification_status": dict(self.notification_status),
                 "recommendations": list(self.recommendations),
+                "anomalies": list(self.anomalies),
+                "zone_history": list(self.zone_history),
+                "operational_metrics": {
+                    "avg_response_seconds": round(statistics.mean(self.response_times), 1) if self.response_times else 0.0,
+                    "resolved_alerts": len(self.response_times),
+                    "peak_zone": max(self.zone_stats, key=lambda z: int(z.get("customer_count", 0) or 0), default={}).get("zone") if self.zone_stats else None,
+                    "peak_zone_customers": max([int(z.get("customer_count", 0) or 0) for z in self.zone_stats], default=0),
+                    "anomaly_count": len(self.anomalies),
+                },
             }
 
 
