@@ -4746,6 +4746,7 @@ def main():
                     zone_stats=zone_stats,
                     staff_coverage=staff_coverage,
                     staff_tracking_configured=bool(RETAIL_STAFF_IDS),
+                    customer_journeys=store_customer_journeys,
                     fps=(1.0 / max(time.monotonic() - loop_started, 1e-6)),
                 )
             except Exception as exc:
