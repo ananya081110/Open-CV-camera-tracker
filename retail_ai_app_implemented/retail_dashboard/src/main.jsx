@@ -24,6 +24,7 @@ const NAV = [
   ['AI Insights', Bot, 'INTELLIGENCE'],
   ['Security & Alerts', ShieldAlert, 'SECURITY'],
   ['Notifications', MessageSquare, 'SECURITY'],
+  ['Camera Fleet', Camera, 'SYSTEM'],
   ['Camera Management', Camera, 'SYSTEM'],
   ['System Health', Cpu, 'SYSTEM'],
 ];
@@ -319,7 +320,47 @@ function Notifications({ data }) {
 
 function Alerts({ data, onAck }) { const alerts=data?.alerts||[]; return <Panel title="Security & Live Alerts" subtitle="Real-time events from the AI pipeline"><div className="alert-feed large-feed">{alerts.map(a=><AlertRow key={a.id} alert={a} onAck={onAck}/>)}{!alerts.length&&<Empty>No alerts at the moment.</Empty>}</div></Panel>; }
 
-function Cameras({ data, online, go }) { const cams=data?.cameras||[]; return <div className="camera-management"><Panel title="Camera Management" subtitle="Connected AI camera sources"><div className="camera-list">{cams.map(c=><div className="managed-camera" key={c.camera_id}><div className="camera-icon"><Camera size={17}/></div><div><b>{c.camera_id}</b><span>{c.status} · {c.fps||0} FPS</span></div><Badge tone={c.status==='online'?'success':'danger'}>{c.status}</Badge><button className="ghost-btn" onClick={()=>go('Live Floor')}>View</button></div>)}{!cams.length&&<Empty>{online?'No camera configuration reported.':'Connect the backend to discover cameras.'}</Empty>}</div></Panel></div>; }
+function CameraFleet({ data, go }) {
+  const cams = data?.cameras || [];
+  const fleet = data?.fleet_metrics || {};
+  const [selected, setSelected] = useState('');
+  const [filter, setFilter] = useState('all');
+  const filtered = cams.filter(c => filter === 'all' || c.status === filter);
+  useEffect(() => {
+    if (!selected || !cams.some(c => c.camera_id === selected)) {
+      setSelected((cams.find(c => c.status === 'online') || cams[0])?.camera_id || '');
+    }
+  }, [cams, selected]);
+  const active = cams.find(c => c.camera_id === selected);
+  const stream = active && active.status === 'online' ? `${API}/api/v1/cameras/${encodeURIComponent(active.camera_id)}/video.mjpg` : '';
+  return <div className="camera-fleet-page">
+    <div className="hero-strip"><div><div className="eyebrow">MULTI-CAMERA OPERATIONS</div><h1>Camera Fleet Command</h1><p>Store-wide visibility across every configured camera source, with per-camera health and aggregate intelligence.</p></div><button className="ghost-btn" onClick={()=>go('Store Analytics')}><BarChart3 size={13}/> Store intelligence</button></div>
+    <section className="stats">
+      <Stat icon={Camera} label="CONFIGURED" value={fleet.configured_cameras || cams.length} detail="Camera fleet" tone="blue"/>
+      <Stat icon={Wifi} label="ONLINE" value={fleet.online_cameras || 0} detail={`${fleet.online_ratio || 0}% availability`} tone="green"/>
+      <Stat icon={CircleAlert} label="OFFLINE" value={fleet.offline_cameras || 0} detail="Awaiting heartbeat" tone="red"/>
+      <Stat icon={Users} label="ACTIVE CUSTOMERS" value={fleet.active_customers || 0} detail={`Across ${fleet.online_cameras || 0} online cameras`} tone="amber"/>
+    </section>
+    <div className="camera-fleet-layout">
+      <Panel title="Selected Camera" subtitle={active ? `${active.camera_id} · ${active.zone || 'Unassigned'}` : 'Select a camera'}>
+        {active ? <div className="camera-preview-wrap">
+          {stream ? <img className="camera-preview" src={stream} alt={`${active.camera_id} live stream`}/> : <div className="camera-offline-preview"><Camera size={26}/><b>{active.camera_id} is offline</b><span>Last heartbeat: {active.last_update ? fmtTime(active.last_update) : 'Never'}</span></div>}
+          <div className="camera-preview-meta"><div><span>Status</span><b>{active.status}</b></div><div><span>FPS</span><b>{active.fps || 0}</b></div><div><span>Customers</span><b>{active.customer_count || 0}</b></div><div><span>Alerts</span><b>{active.alert_count || 0}</b></div></div>
+        </div> : <Empty>No cameras configured.</Empty>}
+      </Panel>
+      <Panel title="Fleet Health" subtitle="30+ camera-ready monitoring">
+        <div className="fleet-health-list"><div><span>Availability</span><b>{fleet.online_ratio || 0}%</b></div><div><span>Average processing FPS</span><b>{fleet.camera_fps_avg || 0}</b></div><div><span>Offline cameras</span><b>{fleet.offline_cameras || 0}</b></div><div><span>Store customers</span><b>{fleet.active_customers || 0}</b></div></div>
+        <div className="camera-health-note"><Check size={14}/><span>Each camera has an independent heartbeat and state slot. One camera going offline does not hide intelligence from the rest of the store.</span></div>
+      </Panel>
+    </div>
+    <Panel title="All Cameras" subtitle="Select a camera to inspect its live state">
+      <div className="fleet-filter"><button className={filter==='all'?'active':''} onClick={()=>setFilter('all')}>All · {cams.length}</button><button className={filter==='online'?'active':''} onClick={()=>setFilter('online')}>Online · {fleet.online_cameras || 0}</button><button className={filter==='offline'?'active':''} onClick={()=>setFilter('offline')}>Offline · {fleet.offline_cameras || 0}</button></div>
+      <div className="camera-fleet-grid">{filtered.map(c => <button className={`fleet-card ${selected===c.camera_id?'selected':''}`} key={c.camera_id} onClick={()=>setSelected(c.camera_id)}><div className="fleet-card-top"><div className="camera-icon"><Camera size={15}/></div><Badge tone={c.status==='online'?'success':'danger'}>{c.status}</Badge></div><b>{c.camera_id}</b><span>{c.zone || 'Unassigned'}</span><div className="fleet-card-metrics"><span>{c.customer_count || 0} customers</span><span>{c.fps || 0} FPS</span></div><small>{c.last_update ? `Heartbeat ${fmtTime(c.last_update)}` : 'Never connected'}</small></button>)}</div>
+    </Panel>
+  </div>;
+}
+
+function Cameras({ data, online, go }) { const cams=data?.cameras||[]; return <div className="camera-management"><Panel title="Camera Management" subtitle="Connected AI camera sources"><div className="camera-list">{cams.filter(c=>c.status==='online').map(c=><div className="managed-camera" key={c.camera_id}><div className="camera-icon"><Camera size={17}/></div><div><b>{c.camera_id}</b><span>{c.status} · {c.fps||0} FPS</span></div><Badge tone="success">online</Badge><button className="ghost-btn" onClick={()=>go('Camera Fleet')}>Inspect</button></div>)}{!cams.filter(c=>c.status==='online').length&&<Empty>{online?'No camera worker is currently reporting.':'Connect the backend to discover cameras.'}</Empty>}</div></Panel></div>; }
 
 function Health({ data, online, lastPacket }) { const checks=[['FastAPI',online],['WebSocket',online],['Camera',data?.camera_status==='online'],['AI stream',(data?.fps||0)>0],['Live state',Date.now()-lastPacket<3000]]; return <><div className="health-grid">{checks.map(([name,ok])=><div className="health-card" key={name}><div className={`health-icon ${ok?'ok':'bad'}`}>{ok?<Check size={15}/>:<X size={15}/>}</div><div><b>{name}</b><span>{ok?'Healthy':'Waiting'}</span></div></div>)}</div><div className="two-col"><Panel title="Runtime" subtitle="Current engine telemetry"><div className="diagnostics"><div><span>Camera</span><b>{data?.camera_id||'—'}</b></div><div><span>AI FPS</span><b>{data?.fps||0}</b></div><div><span>Last update</span><b>{fmtTime(data?.last_update)}</b></div><div><span>Tracked</span><b>{data?.customers?.length||0}</b></div></div></Panel><Panel title="Alerting" subtitle="Operational notification state"><div className="diagnostics"><div><span>Active events</span><b>{data?.alerts?.length||0}</b></div><div><span>Coverage gaps</span><b>{data?.staff_tracking_configured ? (data?.staff_coverage||[]).filter(z=>z.customer_count>0&&!z.staff_present).length : '—'}</b></div><div><span>Event buffer</span><b>{data?.events?.length||0}</b></div><div><span>Transport</span><b>{online?'WebSocket':'Offline'}</b></div></div></Panel></div></>; }
 
@@ -341,6 +382,7 @@ function App() {
       case 'AI Insights': return <Insights {...common}/>;
       case 'Security & Alerts': return <Alerts {...common}/>;
       case 'Notifications': return <Notifications {...common}/>;
+      case 'Camera Fleet': return <CameraFleet {...common}/>;
       case 'Camera Management': return <Cameras {...common}/>;
       case 'System Health': return <Health {...common} lastPacket={lastPacket}/>;
       default: return <Overview {...common}/>;
